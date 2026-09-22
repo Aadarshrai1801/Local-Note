@@ -1,0 +1,54 @@
+# Packaging configuration for Local Note.
+#
+# Produces a Windows installer (.exe via NSIS) and a portable build.
+# Auto-update is deliberately disabled: the app is offline-first, and a silent
+# updater would be the one component that phones home.
+appId: dev.localnote.app
+productName: Local Note
+copyright: Copyright © Local Note contributors
+
+directories:
+  output: release
+  buildResources: build
+
+# Ship the compiled main process, the built renderer, and the native helper
+# source (so the helper can be rebuilt on a machine if needed).
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - assets/**/*
+  - native/WasapiRecorder.cs
+  - native/bin/WasapiRecorder.exe
+  - sidecar/**/*
+  - localnote.config.example.json
+  - package.json
+  - '!**/*.map'
+  - '!**/*.md'
+
+# Native helpers and the Python sidecar must exist as real files on disk: the
+# app executes them, and a process cannot be launched from inside an asar
+# archive. They are unpacked next to the archive, which is exactly where
+# `getResourceDir()` looks when packaged.
+asarUnpack:
+  - native/**
+  - sidecar/**
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  icon: build/icon.ico
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Local Note
+  # No auto-update, no remote component downloads.
+  include: build/installer.nsh
+
+publish: null

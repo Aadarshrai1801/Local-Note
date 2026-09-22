@@ -1,0 +1,41 @@
+{
+  "name": "local-note",
+  "productName": "Local Note",
+  "version": "0.1.0",
+  "description": "Offline Windows meeting notetaker: system-audio capture, local transcription, local summaries. No cloud, no accounts.",
+  "private": true,
+  "license": "MIT",
+  "author": "Local Note contributors",
+  "main": "dist-electron/electron/main.js",
+  "scripts": {
+    "postinstall": "node scripts/ensure-electron.mjs",
+    "dev": "node scripts/dev.mjs",
+    "build:main": "tsc -p tsconfig.electron.json",
+    "build:renderer": "vite build",
+    "build:native": "node scripts/build-native.mjs",
+    "build": "npm run build:native && npm run build:main && npm run build:renderer",
+    "start": "npm run build && electron .",
+    "dist": "npm run build && node scripts/dist.mjs",
+    "dist:dir": "npm run build && node scripts/dist.mjs --dir",
+    "typecheck": "tsc -p tsconfig.electron.json --noEmit && tsc -p tsconfig.json --noEmit",
+    "icon": "node scripts/make-icon.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.21",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.15.3",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.0"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^5.4.149",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}
