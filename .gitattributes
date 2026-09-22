@@ -1,0 +1,15 @@
+# Normalise line endings in the repository so the history is stable regardless
+# of the platform a contributor is on.
+#
+# Everything here is plain text and works fine with LF, including the C# and
+# Python sources. Binary assets must never be normalised.
+* text=auto eol=lf
+
+*.png  binary
+*.ico  binary
+*.exe  binary
+*.wav  binary
+*.onnx binary
+
+# Keep the PowerShell helper readable on Windows.
+*.ps1  text eol=crlf

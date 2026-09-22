@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-electron/
+release/
+native/bin/
+
+# electron-builder download caches (can be hundreds of MB)
+.electron-builder-cache/
+.electron-cache/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local model cache (large; downloaded on demand)
+.localnote-models/
+
+# Runtime data (never commit meeting data)
+.localnote-data/
+*.db
+*.db-wal
+*.db-shm
+
+# Logs
+*.log
+logs/
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Machine-specific data/model locations
+localnote.config.json
+
+# Environment overrides
+.env
+.env.local
