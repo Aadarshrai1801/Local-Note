@@ -1,0 +1,254 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* Base reset + defaults                                              */
+/* ------------------------------------------------------------------ */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: theme('colors.ink.950');
+    color: theme('colors.ink.100');
+    font-family: theme('fontFamily.sans');
+    font-size: 14px;
+    line-height: 1.55;
+    /* Inter's discretionary alternates: single-storey a is off, tabular off by
+       default, contextual alternates on. Numbers stay proportional in prose. */
+    font-feature-settings:
+      'cv05' 1,
+      'cv08' 1,
+      'calt' 1,
+      'liga' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+  }
+
+  ::selection {
+    background: rgba(31, 179, 156, 0.28);
+    color: #f5f7fa;
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.signal.400');
+    outline-offset: 2px;
+  }
+
+  /* Keep focus rings off mouse clicks, but never off keyboard focus. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p {
+    margin: 0;
+  }
+
+  mark {
+    background: rgba(255, 171, 61, 0.18);
+    color: theme('colors.ink.50');
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid theme('colors.ink.800');
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollbars (dark, thin, unobtrusive)                               */
+/* ------------------------------------------------------------------ */
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.ink.700') transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: theme('colors.ink.800');
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.ink.700');
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Reusable primitives                                                */
+/* ------------------------------------------------------------------ */
+
+@layer components {
+  /* A panel is a hairline-bordered surface, never a floating card. */
+  .panel {
+    @apply rounded-md border border-ink-800 bg-ink-900;
+  }
+
+  .panel-quiet {
+    @apply rounded-md border border-ink-800/70 bg-ink-900/50;
+  }
+
+  /* Inset surface for code, paths, transcripts. */
+  .well {
+    @apply rounded-md border border-ink-800/80 bg-ink-950;
+  }
+
+  /* Small uppercase monospace label: section eyebrows and metadata keys. */
+  .eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500;
+  }
+
+  .field {
+    @apply w-full rounded-md border border-ink-800 bg-ink-950 px-3 py-2 text-sm text-ink-100
+      transition-colors placeholder:text-ink-600
+      hover:border-ink-700 focus:border-ink-600 focus:outline-none
+      focus-visible:ring-1 focus-visible:ring-signal-500/40
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .field-sm {
+    @apply px-2 py-1 text-[13px];
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded border border-ink-800 bg-ink-900 px-1.5 py-0.5
+      font-mono text-[11px] uppercase tracking-[0.08em] text-ink-400;
+  }
+
+  .chip-signal {
+    @apply border-signal-500/30 bg-signal-500/10 text-signal-300;
+  }
+
+  .chip-ember {
+    @apply border-ember-500/40 bg-ember-500/10 text-ember-300;
+  }
+
+  .divider {
+    @apply border-t border-ink-800;
+  }
+
+  /* Left-aligned section header used on every view. */
+  .section-title {
+    @apply text-[13px] font-semibold uppercase tracking-[0.12em] text-ink-300;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion                                                             */
+/* ------------------------------------------------------------------ */
+
+@keyframes pulse-rec {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(255, 171, 61, 0.5);
+  }
+  50% {
+    opacity: 0.72;
+    box-shadow: 0 0 0 5px rgba(255, 171, 61, 0);
+  }
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .animate-pulse-rec {
+    animation: pulse-rec 1.7s ease-in-out infinite;
+  }
+
+  .animate-sweep {
+    animation: sweep 1.4s ease-in-out infinite;
+  }
+
+  .animate-fade-up {
+    animation: fade-up 140ms ease-out both;
+  }
+
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Fades the top edge of a scroll region so content never collides with the
+     divider above it. */
+  .mask-fade-top {
+    mask-image: linear-gradient(to bottom, transparent 0, black 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
