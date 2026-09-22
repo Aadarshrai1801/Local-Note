@@ -290,6 +290,38 @@ silent or accidental. Following the law is your responsibility, not the app's.
 
 ---
 
+## Known limitations
+
+**Speaker bleed when using speakers instead of headphones.** The microphone can
+hear your speakers, which captures the other participants twice: once digitally
+from the system stream and once acoustically from the microphone. Local Note
+detects this and discards the duplicate, and warns you when it happens.
+
+It is a mitigation rather than a complete fix. Suppression keys on the duplicate
+arriving at almost the same instant on both streams, which is what distinguishes
+bleed from two people simply saying similar things. Where the microphone hears
+the speakers only faintly, the two transcriptions can differ enough that the
+duplicate is not recognised. **Wearing headphones removes the problem entirely**
+and is the recommended way to use Local Note on a call.
+
+**Diarization of multiple remote speakers** needs optional PyTorch extras
+(`torch speechbrain scikit-learn scipy`). Stream separation already gives you
+`You` versus `Speaker 1` without them.
+
+**Scanned PDFs** have no text layer, so nothing can be extracted from them. This
+is reported rather than silently ignored.
+
+**The installer is unsigned**, so Windows SmartScreen warns on first run.
+
+**Windows only.** WASAPI loopback is a Windows API. The UI, storage and search
+layers are portable, but audio capture is not.
+
+**Voice-print re-identification** across meetings is not implemented. The
+`voice_profiles` table exists for it, but matching is deliberately left out: it
+is biometric data and deserves its own design discussion before being built.
+
+---
+
 ## Troubleshooting
 
 **"Transcription is unavailable"**

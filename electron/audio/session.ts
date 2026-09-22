@@ -202,7 +202,7 @@ export class SessionManager extends EventEmitter {
 
     this.pushState()
 
-    const model = options.model ?? settings.whisperModel
+    const requestedModel = options.model ?? settings.whisperModel
 
     // Agenda/attendee names bias recognition, so seed the prompt context now.
     this.contextHint = (options.briefNotes ?? '').trim()
@@ -211,10 +211,16 @@ export class SessionManager extends EventEmitter {
     try {
       const available = await this.deps.sttAvailable()
       if (available) {
+        // The configured model may not be the one that is actually installed.
+        // Falling back is much friendlier than failing to transcribe at all,
+        // as long as the substitution is stated plainly.
+        const resolution = await this.resolveModel(requestedModel)
+        if (resolution.warning) this.pushWarning(resolution.warning)
+
         this.pipeline = new TranscriptionPipeline(
           this.deps.sidecar,
           meeting.id,
-          model,
+          resolution.model ?? requestedModel,
           [title, this.contextHint].filter((part) => part.trim().length > 0).join('. ')
         )
         this.pipeline.on('segment', (segment: LiveSegment) => {
@@ -227,6 +233,13 @@ export class SessionManager extends EventEmitter {
         this.pipeline.on('error', (error: unknown) => {
           this.pushWarning(
             `Transcription had a problem: ${error instanceof Error ? error.message : String(error)}`
+          )
+        })
+        this.pipeline.on('echo-detected', () => {
+          this.pushWarning(
+            'Your microphone is picking up your speakers, so the other participants were being ' +
+              'transcribed twice. The duplicate copy has been discarded automatically. ' +
+              'Wearing headphones will give cleaner transcripts and correct speaker labels.'
           )
         })
       } else {
@@ -330,6 +343,40 @@ export class SessionManager extends EventEmitter {
     this.pushState()
 
     return { meetingId: meeting.id }
+  }
+
+  /**
+   * Picks the model to actually transcribe with.
+   *
+   * If the configured model is not installed, the largest installed model is
+   * used instead and the substitution is reported, because silently
+   * transcribing with a different model (or worse, failing outright) would be
+   * confusing. The user is told how to get the model they asked for.
+   */
+  private async resolveModel(
+    requested: string
+  ): Promise<{ model: string | null; warning: string | null }> {
+    try {
+      const status = await this.deps.sidecar.status()
+      const present = status.models_present
+      if (present.length === 0) return { model: null, warning: null }
+      if (present.includes(requested)) return { model: requested, warning: null }
+
+      // Prefer the largest installed model: the user downloaded it on purpose,
+      // and larger generally means more accurate.
+      const sizeOf = (id: string): number => status.whisper_models[id]?.size ?? 0
+      const chosen = [...present].sort((a, b) => sizeOf(b) - sizeOf(a))[0]
+
+      return {
+        model: chosen,
+        warning:
+          `"${requested}" is not downloaded, so "${chosen}" is being used instead. ` +
+          `Download "${requested}" from Settings > Models to use it.`
+      }
+    } catch {
+      // If the check itself fails, let the pipeline try the requested model.
+      return { model: requested, warning: null }
+    }
   }
 
   private reportDeadStream(kind: StreamKind): void {
