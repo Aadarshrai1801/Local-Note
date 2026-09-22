@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { createLogger } from '../lib/log'
 import type { TranscriptSegment, SourceKind, StreamKind } from '../../shared/types'
-import { buildSttPrompt, correctText, listDictionary, recordCorrectionHits, type CorrectionResult } from '../db/dictionary'
+import { buildSttPrompt, correctText, levenshtein, listDictionary, recordCorrectionHits, type CorrectionResult } from '../db/dictionary'
 import { insertSegments, type InsertSegmentInput } from '../db/meetings'
 import { getSettings } from '../db/settings'
 import type { Sidecar, TranscribeResult } from './sidecar'
@@ -47,6 +47,76 @@ export interface PipelineStats {
  */
 const NO_SPEECH_REJECT = 0.6
 
+/**
+ * Cross-stream echo suppression.
+ *
+ * When the microphone can hear the speakers (no headphones, or a mic that
+ * monitors the output device), every remote utterance is captured twice: once
+ * digitally from the system stream and once acoustically from the microphone.
+ * Left alone that doubles the transcript and mis-attributes the remote
+ * participants' words to "You".
+ *
+ * Timing is the reliable signal, not text. Bleed arrives essentially
+ * simultaneously on both streams, because the microphone hears the speakers
+ * with only an acoustic delay, whereas two people speaking take turns. Text
+ * similarity alone cannot separate the cases: measured on real output, the same
+ * utterance decoded from a degraded microphone stream scored 0.50, while two
+ * genuinely different statements ("...option A" versus "...option B") scored
+ * 0.98. The distributions overlap, so the window is kept tight and the
+ * similarity bar high, which catches bleed without eating real speech.
+ *
+ * This is a mitigation, not a solution. Headphones remove the problem entirely,
+ * which is why the user is told about it when it is detected.
+ */
+const ECHO_WINDOW_MS = 2500
+const ECHO_SIMILARITY = 0.85
+/** Below this length, short words like "yes" or "okay" are too ambiguous. */
+const ECHO_MIN_LENGTH = 20
+
+/**
+ * Rejects segments that carry no meaning.
+ *
+ * Whisper occasionally emits punctuation-only or heavily repeated output on
+ * marginal audio, for example ". . . . . . . . . .", which is noise rather than
+ * speech and should never reach the transcript.
+ */
+function isMeaninglessText(text: string): boolean {
+  if (!/[\p{L}\p{N}]/u.test(text)) return true
+
+  const tokens = text.toLowerCase().split(/\s+/).filter(Boolean)
+  if (tokens.length >= 6) {
+    const unique = new Set(tokens).size
+    if (unique / tokens.length < 0.25) return true
+  }
+  return false
+}
+
+/** Normalises text for comparison: case, punctuation and spacing removed. */
+function normaliseForCompare(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Similarity of two normalised strings, 0..1.
+ *
+ * Uses a cheap containment check before falling back to edit distance, because
+ * one stream often captures a slightly longer span than the other.
+ */
+function textSimilarity(a: string, b: string): number {
+  if (a === b) return 1
+  const longest = Math.max(a.length, b.length)
+  if (longest === 0) return 1
+
+  if (a.length > ECHO_MIN_LENGTH && b.length > ECHO_MIN_LENGTH && (a.includes(b) || b.includes(a))) {
+    return Math.min(a.length, b.length) / longest
+  }
+  return 1 - levenshtein(a, b) / longest
+}
+
 export class TranscriptionPipeline extends EventEmitter {
   private queue: ChunkJob[] = []
   private running = false
@@ -58,6 +128,18 @@ export class TranscriptionPipeline extends EventEmitter {
 
   /** Text of the last segment per stream, used for duplicate suppression. */
   private lastText = new Map<StreamKind, string>()
+
+  /**
+   * Recently kept segments per stream, used to detect microphone bleed from the
+   * speakers. Bounded because only a few seconds of history is ever consulted.
+   */
+  private recentSegments: Record<StreamKind, Array<{ text: string; startMs: number }>> = {
+    system: [],
+    mic: []
+  }
+
+  /** Count of segments dropped as speaker bleed, reported to the user once. */
+  private echoDrops = 0
 
   /** Speaker label applied to each stream. */
   private labels: Record<StreamKind, string> = { system: 'Speaker 1', mic: 'You' }
@@ -212,6 +294,13 @@ export class TranscriptionPipeline extends EventEmitter {
         continue
       }
 
+      // Discard output that carries no meaning, such as runs of punctuation.
+      if (isMeaninglessText(text)) {
+        this.skipped++
+        log.debug(`dropped meaningless segment: "${text.slice(0, 60)}"`)
+        continue
+      }
+
       // Whisper repeats itself at chunk edges; drop an exact repeat from the
       // same stream so the transcript does not stutter.
       const previous = this.lastText.get(job.stream)
@@ -229,16 +318,40 @@ export class TranscriptionPipeline extends EventEmitter {
         }
       }
 
+      const startMs = offsetMs + segment.start * 1000
+      const endMs = offsetMs + Math.max(segment.end, segment.start + 0.2) * 1000
+
+      // Drop microphone bleed: the same words arriving on the other stream
+      // within a few seconds means the mic is hearing the speakers.
+      const other: StreamKind = job.stream === 'system' ? 'mic' : 'system'
+      const normalised = normaliseForCompare(finalText)
+      if (normalised.length >= ECHO_MIN_LENGTH) {
+        const isEcho = this.recentSegments[other].some(
+          (previous) =>
+            Math.abs(previous.startMs - startMs) <= ECHO_WINDOW_MS &&
+            textSimilarity(normalised, previous.text) >= ECHO_SIMILARITY
+        )
+        if (isEcho) {
+          this.echoDrops++
+          log.debug(`dropped speaker bleed from ${job.stream}: "${finalText.slice(0, 60)}"`)
+          // Only report this once; repeating it every few seconds would be noise.
+          if (this.echoDrops === 1) this.emit('echo-detected')
+          continue
+        }
+      }
+
       inputs.push({
         meetingId: this.meetingId,
         speakerLabel: this.labels[job.stream],
         source,
-        startMs: offsetMs + segment.start * 1000,
-        endMs: offsetMs + Math.max(segment.end, segment.start + 0.2) * 1000,
+        startMs,
+        endMs,
         text: finalText,
         confidence: segment.confidence,
         corrected
       })
+
+      this.remember(job.stream, normalised, startMs)
 
       if (correction && correction.changes.length > 0) {
         recordCorrectionHits(correction.changes)
@@ -246,6 +359,13 @@ export class TranscriptionPipeline extends EventEmitter {
     }
 
     return inputs
+  }
+
+  /** Keeps a short rolling window of recent text for echo detection. */
+  private remember(stream: StreamKind, normalisedText: string, startMs: number): void {
+    const buffer = this.recentSegments[stream]
+    buffer.push({ text: normalisedText, startMs })
+    if (buffer.length > 12) buffer.splice(0, buffer.length - 12)
   }
 
   dispose(): void {

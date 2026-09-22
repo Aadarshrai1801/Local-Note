@@ -321,9 +321,31 @@ def _warm_up(model) -> None:
         break
 
 
-def get_whisper(model_id: str):
+def get_whisper(model_id: str, allow_download: bool = False):
+    """
+    Loads a Whisper model.
+
+    `allow_download` is False for anything the user did not explicitly ask for.
+    faster-whisper will happily fetch a missing model from Hugging Face on first
+    use, which would turn "press record" into an unannounced 145 MB download.
+    Model downloads are supposed to be a deliberate, visible action, so every
+    path except the explicit download command refuses to fetch and explains what
+    to do instead.
+    """
     if model_id in _whisper_cache:
         return _whisper_cache[model_id]
+
+    if not allow_download:
+        present = installed_whisper_models()
+        if model_id not in present:
+            size = WHISPER_MODELS.get(model_id, {}).get("size")
+            size_hint = f" (about {size // 1_000_000} MB)" if size else ""
+            alternatives = f" Already installed: {', '.join(present)}." if present else ""
+            raise RuntimeError(
+                f"The speech model '{model_id}' is not installed yet{size_hint}. "
+                f"Open Settings > Models in Local Note and download it once, "
+                f"then try again.{alternatives}"
+            )
 
     from faster_whisper import WhisperModel
 
@@ -344,6 +366,9 @@ def get_whisper(model_id: str):
                 device=device,
                 compute_type=compute_type,
                 download_root=whisper_download_root(),
+                # Belt and braces: even if the presence check above were wrong,
+                # this guarantees no implicit network fetch.
+                local_files_only=not allow_download,
             )
             _warm_up(model)
 
@@ -383,7 +408,8 @@ def cmd_download_model(request_id: Any, params: Dict[str, Any]) -> None:
 
     try:
         send({"event": "progress", "id": request_id, "phase": "download", "model": model_id, "fraction": 0.05})
-        get_whisper(model_id)
+        # This is the one place a model may be fetched from the network.
+        get_whisper(model_id, allow_download=True)
         send({"event": "progress", "id": request_id, "phase": "download", "model": model_id, "fraction": 1.0})
         ok(request_id, {"downloaded": model_id, "models_present": installed_whisper_models()})
     except Exception as exc:  # network errors, disk errors, unsupported model
