@@ -1,0 +1,33 @@
+# Local Note — Python sidecar dependencies
+#
+# Install into a project-local virtualenv (recommended, and what the app
+# auto-detects):
+#
+#   python -m venv .venv
+#   .venv\Scripts\python.exe -m pip install -r sidecar\requirements.txt
+#
+# Everything here runs fully offline after installation. The only network access
+# is the one-time model download you trigger explicitly from Settings > Models.
+
+# --- Speech-to-text (required for transcription) -------------------------
+# CTranslate2-based Whisper inference. Ships prebuilt wheels for Windows, so no
+# C++ compiler is needed.
+faster-whisper>=1.0.0
+
+# --- Local embeddings for semantic search (recommended) ------------------
+# Used to run the all-MiniLM-L6-v2 ONNX model that powers "find meetings about X".
+# Download the model once from Settings > Models.
+onnxruntime>=1.17.0
+tokenizers>=0.15.0
+
+# --- Speaker diarization (optional) --------------------------------------
+# Uncomment BOTH lines to split the far end of a call into Speaker 1 / Speaker 2
+# instead of a single "Them" label. This pulls in PyTorch (~2.5 GB), which is why
+# it is not installed by default. Local Note works without it: because the
+# microphone and system audio are captured as separate streams, it already knows
+# "You" from "Them" without any model.
+#
+# torch>=2.2.0
+# speechbrain>=1.0.0
+# scikit-learn>=1.4.0
+# scipy>=1.11.0
