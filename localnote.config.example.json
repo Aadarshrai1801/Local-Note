@@ -1,0 +1,8 @@
+{
+  "//": "Copy this file to 'localnote.config.json' to customise where Local Note stores data.",
+  "//dataDir": "Where the database, audio files, logs and brief documents live.",
+  "//modelsDir": "Where downloaded models live. Useful to point at a larger drive, since these can reach several GB.",
+  "//note": "Both paths are created automatically. Everything else falls back to %APPDATA%\\Local Note.",
+  "dataDir": "D:\\LocalNote\\data",
+  "modelsDir": "D:\\LocalNote\\models"
+}
