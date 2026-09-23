@@ -396,8 +396,56 @@ namespace LocalNote
 
         public void Start()
         {
+            // Resolve the device name before the capture thread starts. The
+            // "ready" message is emitted as soon as the threads are launched, so
+            // resolving inside the thread raced it and the UI showed "unknown"
+            // for every stream — leaving the user unable to tell which device
+            // was actually being recorded.
+            ResolveDeviceName();
+
             _thread = new Thread(Run) { IsBackground = true, Name = "capture-" + _name };
             _thread.Start();
+        }
+
+        /// <summary>
+        /// Looks up the friendly name of the endpoint this stream will use.
+        /// Best effort: a failure here only costs a nicer label in the UI.
+        /// </summary>
+        private void ResolveDeviceName()
+        {
+            if (!string.IsNullOrEmpty(_deviceName) && _deviceName != "unknown") return;
+
+            NativeMethods.CoInitializeEx(IntPtr.Zero, NativeMethods.COINIT_MULTITHREADED);
+            try
+            {
+                var enumeratorType = Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"));
+                var enumerator = (IMMDeviceEnumerator)Activator.CreateInstance(enumeratorType);
+
+                IMMDevice device = null;
+                if (!string.IsNullOrEmpty(_deviceId))
+                {
+                    enumerator.GetDevice(_deviceId, out device);
+                }
+                if (device == null)
+                {
+                    enumerator.GetDefaultAudioEndpoint(_flow, ERole.eMultimedia, out device);
+                }
+                if (device == null) return;
+
+                string endpointId;
+                if (device.GetId(out endpointId) != 0 || string.IsNullOrEmpty(endpointId)) return;
+
+                string friendly = DeviceEnumerator.FriendlyName(endpointId);
+                if (!string.IsNullOrEmpty(friendly)) _deviceName = friendly;
+            }
+            catch
+            {
+                // Keep whatever name we already have.
+            }
+            finally
+            {
+                NativeMethods.CoUninitialize();
+            }
         }
 
         public void Stop() { _stop = true; }

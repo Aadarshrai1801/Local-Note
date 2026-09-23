@@ -386,12 +386,31 @@ export class SessionManager extends EventEmitter {
           'selected in Windows, that it is not muted, and that Local Note has microphone permission. ' +
           "You can keep recording — only the other participants are being captured right now."
       )
-    } else {
-      this.pushWarning(
-        'No system audio has been detected yet. If the call is playing through your speakers or ' +
-          'headphones, check that the correct output device is set as the Windows default.'
-      )
+      return
     }
+
+    // The system stream being silent is the single most damaging failure for
+    // accuracy: the app then transcribes whatever the microphone overheard,
+    // which is far worse audio. Diagnose the likely cause rather than printing
+    // a generic hint.
+    const device = this.deviceNames.system ?? ''
+    const isBluetooth = /bluetooth|hands-free|headset|airpods|buds|wh-|wf-|beats|jabra|bose/i.test(device)
+
+    if (isBluetooth) {
+      this.pushWarning(
+        `No system audio was captured, and the output device is "${device}", which is a Bluetooth ` +
+          'headset. Windows loopback capture is unreliable on Bluetooth audio — it commonly ' +
+          'returns silence. Switch the Windows default output to your built-in speakers or wired ' +
+          'headphones and record again for a fully accurate transcript.'
+      )
+      return
+    }
+
+    this.pushWarning(
+      'No system audio has been detected yet, so only your microphone is being transcribed. ' +
+        'That is much less accurate than the digital capture. Check that the app or call playing ' +
+        `the audio is using the Windows default output device${device ? ` (currently "${device}")` : ''}.`
+    )
   }
 
   /* ---------------- stop ---------------- */
