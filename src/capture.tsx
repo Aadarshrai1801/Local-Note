@@ -24,15 +24,6 @@ const BAR_ENVELOPE = [0.45, 0.7, 0.9, 1, 0.9, 0.7, 0.45]
 /** Tallest the bars get, in pixels. Matches the meter container height. */
 const BAR_MAX_HEIGHT = 26
 
-/** Maps an RMS amplitude to a bar height fraction, with a little compression. */
-function levelToScale(rms: number): number {
-  if (!Number.isFinite(rms) || rms <= 0) return 0.12
-  // Speech sits around 0.01-0.2 RMS. A square root spreads that range out so
-  // quiet speech still visibly moves the bars.
-  const shaped = Math.sqrt(Math.min(rms * 6, 1))
-  return 0.12 + shaped * 0.88
-}
-
 interface BarState {
   /** Combined loudness across the active streams. */
   level: number

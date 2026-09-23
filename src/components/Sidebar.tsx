@@ -190,34 +190,16 @@ export function Sidebar(): ReactNode {
           </button>
         )}
 
-        {/* Quiet status footer: dots only, no card. */}
-        <div className="space-y-1.5 px-2.5">
-          <StatusLine
-            label="Transcription"
-            state={status == null ? 'unknown' : status.stt.available ? 'ok' : 'error'}
-            detail={status?.stt.engine ?? 'not detected'}
-          />
-          <StatusLine
-            label="Local model"
-            state={status == null ? 'unknown' : status.llm.available ? 'ok' : 'warn'}
-            detail={status?.llm.selectedModel ?? 'not running'}
-          />
-          {busy && (
-            <p className="flex items-center gap-1.5 pt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-500">
-              <span className="h-1 w-1 animate-pulse rounded-full bg-signal-400" />
-              <span className="truncate">{busy.label}</span>
-            </p>
-          )}
-        </div>
-
-        <p className="flex items-start gap-1.5 px-1 font-mono text-[10px] uppercase leading-relaxed tracking-[0.08em] text-ink-500">
-          <Icon name="lock" size={11} className="mt-0.5 shrink-0" />
-          <span>
-            local only · no account
-            <br />
-            no telemetry · no cloud
-          </span>
-        </p>
+        {/* Progress only. The backend status lines and the privacy notice that
+            used to sit here were removed: status is already on the Setup and
+            Diagnostics screens, and repeating a privacy claim inside the
+            navigation added noise without adding information. */}
+        {busy && (
+          <p className="flex items-center gap-1.5 px-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-500">
+            <span className="h-1 w-1 animate-pulse rounded-full bg-signal-400" />
+            <span className="truncate">{busy.label}</span>
+          </p>
+        )}
         {isMockApi && (
           <p className="px-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ember-400/80">
             browser mock · not recording
@@ -225,34 +207,5 @@ export function Sidebar(): ReactNode {
         )}
       </div>
     </aside>
-  )
-}
-
-type StatusState = 'ok' | 'warn' | 'error' | 'unknown'
-
-const DOT_TONES: Record<StatusState, string> = {
-  ok: 'bg-emerald-400',
-  warn: 'bg-ember-400',
-  error: 'bg-danger-400',
-  unknown: 'bg-ink-600'
-}
-
-function StatusLine({
-  label,
-  state,
-  detail
-}: {
-  label: string
-  state: StatusState
-  detail: string
-}): ReactNode {
-  return (
-    <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.08em]">
-      <span aria-hidden="true" className={cx('h-1.5 w-1.5 shrink-0 rounded-full', DOT_TONES[state])} />
-      <span className="text-ink-500">{label}</span>
-      <span className="truncate text-ink-400" title={detail}>
-        {detail}
-      </span>
-    </p>
   )
 }
