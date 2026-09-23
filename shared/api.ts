@@ -138,6 +138,16 @@ export interface LocalNoteApi {
   openLogs(): Promise<void>
   getLogTail(lines?: number): Promise<string>
 
+  /* ---------------- floating capture bar ---------------- */
+  getCaptureBarStatus(): Promise<{
+    enabled: boolean
+    hideWhenIdle: boolean
+    hotkey: string
+    /** False when another application already owns the shortcut. */
+    hotkeyRegistered: boolean
+  }>
+  resetCaptureBarPosition(): Promise<void>
+
   /* ---------------- events ---------------- */
   onEvent(callback: (event: MainEvent) => void): () => void
 }
@@ -202,7 +212,9 @@ export const INVOKE_METHODS = [
   'transcribeAudioFile',
   'openDataDir',
   'openLogs',
-  'getLogTail'
+  'getLogTail',
+  'getCaptureBarStatus',
+  'resetCaptureBarPosition'
 ] as const
 
 export type InvokeMethod = (typeof INVOKE_METHODS)[number]

@@ -27,7 +27,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   pythonPath: null,
   systemDeviceId: null,
   micDeviceId: null,
-  theme: 'dark'
+  theme: 'dark',
+
+  captureBarEnabled: true,
+  // The bar stays visible while idle by default so it is discoverable, but at
+  // low opacity and click-through so it does not get in the way.
+  captureBarHideWhenIdle: false,
+  captureHotkey: 'CommandOrControl+Shift+Space',
+  captureBarPosition: null
 }
 
 let cache: AppSettings | null = null

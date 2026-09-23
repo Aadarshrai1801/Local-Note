@@ -3,14 +3,22 @@
 @tailwind utilities;
 
 /* ------------------------------------------------------------------ */
-/* Base reset + defaults                                              */
+/* Base                                                                */
 /* ------------------------------------------------------------------ */
 
 @layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
+  :root {
+    /* Surfaces, from furthest back to closest. */
+    --surface-base: 11 11 13;      /* #0b0b0d  app shell */
+    --surface-raised: 22 22 24;    /* #161618  panels */
+    --surface-overlay: 17 17 19;   /* #111113  floating elements */
+    --hairline: 39 39 42;          /* #27272a */
+    --accent: 255 171 61;          /* #ffab3d  the one accent */
+  }
+
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   html,
@@ -19,236 +27,195 @@
     height: 100%;
   }
 
-  html {
-    color-scheme: dark;
-    -webkit-text-size-adjust: 100%;
-  }
-
   body {
-    margin: 0;
-    background-color: theme('colors.ink.950');
-    color: theme('colors.ink.100');
-    font-family: theme('fontFamily.sans');
-    font-size: 14px;
-    line-height: 1.55;
-    /* Inter's discretionary alternates: single-storey a is off, tabular off by
-       default, contextual alternates on. Numbers stay proportional in prose. */
-    font-feature-settings:
-      'cv05' 1,
-      'cv08' 1,
-      'calt' 1,
-      'liga' 1;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    @apply bg-ink-950 text-ink-100 font-sans;
+    /* Inter features: tabular figures for timestamps, contextual alternates. */
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'tnum';
+    text-rendering: optimizeLegibility;
     overflow: hidden;
   }
 
-  button,
-  input,
-  select,
-  textarea {
-    font: inherit;
-    color: inherit;
-    letter-spacing: inherit;
+  /* The floating capture bar window is transparent; the Hub is not. */
+  body.capture-window {
+    background: transparent;
   }
 
   ::selection {
-    background: rgba(31, 179, 156, 0.28);
-    color: #f5f7fa;
+    background: rgb(var(--accent) / 0.28);
   }
 
   :focus-visible {
-    outline: 2px solid theme('colors.signal.400');
-    outline-offset: 2px;
-  }
-
-  /* Keep focus rings off mouse clicks, but never off keyboard focus. */
-  :focus:not(:focus-visible) {
-    outline: none;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  p {
-    margin: 0;
-  }
-
-  mark {
-    background: rgba(255, 171, 61, 0.18);
-    color: theme('colors.ink.50');
-    border-radius: 2px;
-    padding: 0 1px;
-  }
-
-  hr {
-    border: 0;
-    border-top: 1px solid theme('colors.ink.800');
+    @apply outline-none ring-2 ring-ember-400/70 ring-offset-0;
   }
 }
 
 /* ------------------------------------------------------------------ */
-/* Scrollbars (dark, thin, unobtrusive)                               */
+/* Primitives                                                          */
 /* ------------------------------------------------------------------ */
 
-@layer base {
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: theme('colors.ink.700') transparent;
+@layer components {
+  /**
+   * Glass panel: the floating bar and any element that sits above content.
+   * Blur plus a translucent fill, never a hard border.
+   */
+  .glass {
+    background: rgb(var(--surface-overlay) / 0.72);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.06),
+      0 16px 48px -12px rgb(0 0 0 / 0.7);
   }
 
-  ::-webkit-scrollbar {
+  .glass-strong {
+    background: rgb(var(--surface-overlay) / 0.88);
+    backdrop-filter: blur(32px) saturate(200%);
+    -webkit-backdrop-filter: blur(32px) saturate(200%);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.08),
+      0 20px 60px -14px rgb(0 0 0 / 0.75);
+  }
+
+  /* Hairline dividers instead of borders wherever possible. */
+  .hairline {
+    @apply border-ink-800;
+  }
+
+  .panel {
+    @apply rounded-panel bg-ink-900 hairline border;
+  }
+
+  .well {
+    @apply rounded-control bg-ink-950/60 hairline border;
+  }
+
+  /**
+   * The light content canvas. Dark chrome around a light page keeps long-form
+   * text legible, which matters for transcripts and note lists.
+   */
+  .canvas-surface {
+    @apply bg-canvas text-canvas-text;
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-medium uppercase tracking-[0.14em] text-ink-400;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium;
+  }
+
+  .field {
+    @apply w-full rounded-control bg-ink-950/70 hairline border px-3 py-2 text-sm
+           text-ink-100 placeholder:text-ink-500
+           transition-colors duration-150 ease-spring
+           focus:border-ember-400/50 focus:outline-none;
+  }
+
+  /* Buttons: pill-shaped per the shape language. */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2
+           text-sm font-medium transition-all duration-150 ease-spring
+           disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  .btn-primary {
+    @apply btn bg-ember-400 text-ink-950 hover:bg-ember-300 active:scale-[0.98];
+  }
+
+  .btn-quiet {
+    @apply btn bg-ink-800/70 text-ink-100 hover:bg-ink-700 active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply btn text-ink-300 hover:bg-ink-800/60 hover:text-ink-100 active:scale-[0.98];
+  }
+
+  .btn-danger {
+    @apply btn bg-danger-500/15 text-danger-400 hover:bg-danger-500/25 active:scale-[0.98];
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollbars                                                          */
+/* ------------------------------------------------------------------ */
+
+@layer utilities {
+  .scroll-slim {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--hairline)) transparent;
+  }
+
+  .scroll-slim::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
 
-  ::-webkit-scrollbar-track {
+  .scroll-slim::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  ::-webkit-scrollbar-thumb {
-    background-color: theme('colors.ink.800');
+  .scroll-slim::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--hairline));
     border-radius: 9999px;
     border: 3px solid transparent;
     background-clip: content-box;
   }
 
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: theme('colors.ink.700');
+  .scroll-slim::-webkit-scrollbar-thumb:hover {
+    background-color: #3f3f46;
+    background-clip: content-box;
   }
 
-  ::-webkit-scrollbar-corner {
-    background: transparent;
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* Reusable primitives                                                */
-/* ------------------------------------------------------------------ */
-
-@layer components {
-  /* A panel is a hairline-bordered surface, never a floating card. */
-  .panel {
-    @apply rounded-md border border-ink-800 bg-ink-900;
+  /* Regions the user drags the floating bar by. */
+  .drag-region {
+    -webkit-app-region: drag;
   }
 
-  .panel-quiet {
-    @apply rounded-md border border-ink-800/70 bg-ink-900/50;
+  .no-drag {
+    -webkit-app-region: no-drag;
   }
 
-  /* Inset surface for code, paths, transcripts. */
-  .well {
-    @apply rounded-md border border-ink-800/80 bg-ink-950;
-  }
-
-  /* Small uppercase monospace label: section eyebrows and metadata keys. */
-  .eyebrow {
-    @apply font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500;
-  }
-
-  .field {
-    @apply w-full rounded-md border border-ink-800 bg-ink-950 px-3 py-2 text-sm text-ink-100
-      transition-colors placeholder:text-ink-600
-      hover:border-ink-700 focus:border-ink-600 focus:outline-none
-      focus-visible:ring-1 focus-visible:ring-signal-500/40
-      disabled:cursor-not-allowed disabled:opacity-50;
-  }
-
-  .field-sm {
-    @apply px-2 py-1 text-[13px];
-  }
-
-  .chip {
-    @apply inline-flex items-center gap-1 rounded border border-ink-800 bg-ink-900 px-1.5 py-0.5
-      font-mono text-[11px] uppercase tracking-[0.08em] text-ink-400;
-  }
-
-  .chip-signal {
-    @apply border-signal-500/30 bg-signal-500/10 text-signal-300;
-  }
-
-  .chip-ember {
-    @apply border-ember-500/40 bg-ember-500/10 text-ember-300;
-  }
-
-  .divider {
-    @apply border-t border-ink-800;
-  }
-
-  /* Left-aligned section header used on every view. */
-  .section-title {
-    @apply text-[13px] font-semibold uppercase tracking-[0.12em] text-ink-300;
+  .text-balance {
+    text-wrap: balance;
   }
 }
 
 /* ------------------------------------------------------------------ */
-/* Motion                                                             */
+/* Motion                                                              */
 /* ------------------------------------------------------------------ */
 
-@keyframes pulse-rec {
+@keyframes level-bar {
   0%,
   100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgba(255, 171, 61, 0.5);
+    transform: scaleY(0.35);
   }
   50% {
-    opacity: 0.72;
-    box-shadow: 0 0 0 5px rgba(255, 171, 61, 0);
+    transform: scaleY(1);
   }
 }
 
-@keyframes sweep {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(400%);
-  }
-}
-
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(3px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@layer utilities {
-  .animate-pulse-rec {
-    animation: pulse-rec 1.7s ease-in-out infinite;
-  }
-
-  .animate-sweep {
-    animation: sweep 1.4s ease-in-out infinite;
-  }
-
-  .animate-fade-up {
-    animation: fade-up 140ms ease-out both;
-  }
-
-  .tnum {
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Fades the top edge of a scroll region so content never collides with the
-     divider above it. */
-  .mask-fade-top {
-    mask-image: linear-gradient(to bottom, transparent 0, black 24px);
-  }
+/**
+ * Audio level bars. The animation is only a fallback: when real levels are
+ * available the height is driven directly from the recorder's RMS values, so
+ * the bars reflect what is actually being heard.
+ */
+.level-bar {
+  transform-origin: center;
+  animation: level-bar 900ms ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.001ms !important;
+    animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .level-bar {
+    animation: none;
+    transform: scaleY(0.7);
   }
 }

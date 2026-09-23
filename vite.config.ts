@@ -15,7 +15,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    sourcemap: true
+    sourcemap: true,
+    rollupOptions: {
+      input: {
+        // The Hub (main window) and the floating capture bar are separate
+        // documents, so the overlay loads only the small bundle it needs.
+        hub: fileURLToPath(new URL('./index.html', import.meta.url)),
+        capture: fileURLToPath(new URL('./capture.html', import.meta.url))
+      }
+    }
   },
   server: {
     port: 5273,

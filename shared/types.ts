@@ -276,6 +276,17 @@ export interface AppSettings {
   systemDeviceId: string | null
   micDeviceId: string | null
   theme: 'dark' | 'light' | 'system'
+
+  /* ---------------- floating capture bar ---------------- */
+
+  /** Show the always-on-top capture bar on the desktop. */
+  captureBarEnabled: boolean
+  /** Hide it entirely while idle, showing it only during capture. */
+  captureBarHideWhenIdle: boolean
+  /** Global shortcut that starts/stops capture, in Electron accelerator syntax. */
+  captureHotkey: string
+  /** Last dragged position, in screen coordinates (DIP). Null = bottom centre. */
+  captureBarPosition: { x: number; y: number } | null
 }
 
 /** Events pushed from main -> renderer over a single IPC channel. */
