@@ -262,6 +262,38 @@ defaults but environment variables win over the config file. The model cache for
 Hugging Face downloads is redirected into `modelsDir` too, so nothing large is
 ever written to `%USERPROFILE%\.cache`.
 
+**Everything the app writes goes to `dataDir`.** That includes Electron's own
+profile — `Cache`, `GPUCache`, `Local Storage`, session and network state — which
+otherwise defaults to `%APPDATA%\<productName>` on the system drive and ignores
+this setting entirely. Point `dataDir` at another volume and nothing is left on
+`C:`.
+
+For an **installed** build, the config file is not packaged (it is
+machine-specific), so set the environment variable instead and every launch will
+use it:
+
+```powershell
+[Environment]::SetEnvironmentVariable('LOCALNOTE_DATA_DIR', 'D:\LocalNote\data', 'User')
+```
+
+The Windows installer also defaults its own install location to `D:\Local Note`
+when a `D:` drive exists, and still lets you change it in the directory picker.
+
+### Keeping development caches off the system drive
+
+Tool caches are not part of the app, but they are often the largest thing on a
+developer's machine — an npm cache alone can reach tens of gigabytes. To move
+them:
+
+```powershell
+npm config set cache D:\dev-cache\npm
+
+[Environment]::SetEnvironmentVariable('PIP_CACHE_DIR',          'D:\dev-cache\pip',              'User')
+[Environment]::SetEnvironmentVariable('ELECTRON_CACHE',         'D:\dev-cache\electron',         'User')
+[Environment]::SetEnvironmentVariable('ELECTRON_BUILDER_CACHE', 'D:\dev-cache\electron-builder', 'User')
+[Environment]::SetEnvironmentVariable('HF_HOME',                'D:\dev-cache\huggingface',      'User')
+```
+
 ---
 
 ## Privacy & Local-Only Guarantee
