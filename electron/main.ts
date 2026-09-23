@@ -65,6 +65,32 @@ import { readIcsFile } from './brief/ics'
 const log = createLogger('main')
 
 /* ------------------------------------------------------------------ */
+/* Storage location                                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Relocate Electron's own storage before anything else runs.
+ *
+ * `app.getPath('userData')` is where Chromium keeps its Cache, GPUCache,
+ * Local Storage, Session Storage and network state. It defaults to
+ * %APPDATA%\<productName> on the system drive, which ignores the app's own
+ * data-directory setting entirely.
+ *
+ * Pointing it at the resolved data directory means every byte the app writes —
+ * Chromium's caches as well as meetings, audio and models — lives under one
+ * folder that the user chose. This must happen before the app is ready.
+ */
+try {
+  const resolved = getPaths().dataDir
+  if (app.getPath('userData') !== resolved) {
+    app.setPath('userData', resolved)
+  }
+} catch (error) {
+  // Never fatal: falling back to the default location is better than not starting.
+  log.warn('could not relocate Electron storage; using the default location', error)
+}
+
+/* ------------------------------------------------------------------ */
 /* Shared services                                                     */
 /* ------------------------------------------------------------------ */
 
