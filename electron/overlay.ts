@@ -1,6 +1,7 @@
 import { BrowserWindow, screen, globalShortcut, type Display } from 'electron'
 import { join } from 'node:path'
 import { createLogger } from './lib/log'
+import { getResourceDir } from './lib/paths'
 import { getSettings, updateSettings } from './db/settings'
 import type { MainEvent, SessionState } from '../shared/types'
 
@@ -105,8 +106,9 @@ export class CaptureOverlay {
     if (this.options.devUrl) {
       void this.window.loadURL(`${this.options.devUrl}/capture.html`)
     } else {
-      const appPath = this.resolveAppPath()
-      void this.window.loadFile(join(appPath, 'dist', 'capture.html'))
+      // Use the shared resource resolver so the overlay honours the same
+      // LOCALNOTE_RESOURCE_DIR override and packaged layout as everything else.
+      void this.window.loadFile(join(getResourceDir(), 'dist', 'capture.html'))
     }
 
     this.window.once('ready-to-show', () => {
@@ -335,16 +337,6 @@ export class CaptureOverlay {
     if (this.isOpen) {
       this.window!.destroy()
       this.window = null
-    }
-  }
-
-  private resolveAppPath(): string {
-    try {
-      const { app } = require('electron') as typeof import('electron')
-      const appPath = app.getAppPath()
-      return app.isPackaged ? appPath.replace(/app\.asar$/, 'app.asar.unpacked') : appPath
-    } catch {
-      return process.cwd()
     }
   }
 }
