@@ -48,7 +48,7 @@ export function EmptyState({
         <span
           className={cx(
             'eyebrow',
-            canvas && 'text-canvas-faint',
+            canvas && 'text-canvas-muted',
             tone === 'signal' && 'text-signal-400'
           )}
         >

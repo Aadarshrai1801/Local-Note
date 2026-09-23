@@ -311,8 +311,8 @@ function TermList({ terms, onUpdated, onDeleted }: TermListProps): ReactNode {
                   </p>
                 )}
 
-                <p className="mt-2 flex items-center gap-3 font-mono text-[11px] text-canvas-faint">
-                  <span className={cx(term.hitCount > 0 && 'text-canvas-muted')}>
+                <p className="mt-2 flex items-center gap-3 font-mono text-[11px] text-canvas-muted">
+                  <span className={cx(term.hitCount > 0 && 'text-canvas-text')}>
                     {formatCount(term.hitCount)} hits
                   </span>
                   <span>added {formatDateShort(term.createdAt)}</span>
@@ -407,7 +407,7 @@ function TermEditForm({ term, existing, onCancel, onSaved }: TermEditFormProps):
       }}
     >
       <div>
-        <label className="eyebrow mb-1 block text-canvas-faint" htmlFor={`edit-term-${term.id}`}>
+        <label className="eyebrow mb-1 block text-canvas-muted" htmlFor={`edit-term-${term.id}`}>
           Term
         </label>
         <input
@@ -427,7 +427,7 @@ function TermEditForm({ term, existing, onCancel, onSaved }: TermEditFormProps):
       </div>
       <div>
         <label
-          className="eyebrow mb-1 block text-canvas-faint"
+          className="eyebrow mb-1 block text-canvas-muted"
           htmlFor={`edit-replacement-${term.id}`}
         >
           Replacement
@@ -441,7 +441,7 @@ function TermEditForm({ term, existing, onCancel, onSaved }: TermEditFormProps):
         />
       </div>
       <div>
-        <label className="eyebrow mb-1 block text-canvas-faint" htmlFor={`edit-notes-${term.id}`}>
+        <label className="eyebrow mb-1 block text-canvas-muted" htmlFor={`edit-notes-${term.id}`}>
           Notes
         </label>
         <input

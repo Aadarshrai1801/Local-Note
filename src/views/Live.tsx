@@ -90,7 +90,7 @@ export function Live(): ReactNode {
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <Button
-            variant="primary"
+            variant="accent"
             size="lg"
             loading={starting}
             icon={<Icon name="play" size={14} />}
@@ -128,7 +128,7 @@ export function Live(): ReactNode {
         <div className="shrink-0 border-b border-ember-500/25 bg-ember-500/[0.06] px-6 py-2.5">
           <ul className="space-y-1">
             {session.warnings.map((warning) => (
-              <li key={warning} className="flex items-start gap-2 text-[12.5px] text-ember-200">
+              <li key={warning} className="flex items-start gap-2 text-[13px] text-ember-200">
                 <Icon name="alert" size={14} className="mt-0.5 shrink-0 text-ember-400" />
                 <span>{warning}</span>
               </li>
@@ -138,9 +138,9 @@ export function Live(): ReactNode {
       )}
 
       {session.error && (
-        <div className="shrink-0 border-b border-red-500/30 bg-red-500/[0.07] px-6 py-2.5">
-          <p className="flex items-start gap-2 text-[12.5px] text-red-200">
-            <Icon name="alert" size={14} className="mt-0.5 shrink-0 text-red-400" />
+        <div className="shrink-0 border-b border-danger-500/30 bg-danger-500/[0.07] px-6 py-2.5">
+          <p className="flex items-start gap-2 text-[13px] text-danger-400">
+            <Icon name="alert" size={14} className="mt-0.5 shrink-0 text-danger-400" />
             <span>{session.error}</span>
           </p>
         </div>
@@ -170,7 +170,7 @@ export function Live(): ReactNode {
 
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-baseline gap-3 pb-2">
-            <h2 className="section-title">Transcript</h2>
+            <h2 className="eyebrow text-ink-400">Transcript</h2>
             <span className="font-mono text-[11px] text-ink-600">
               {segments.length} lines
             </span>
@@ -351,7 +351,7 @@ function MissedPanel({
   return (
     <section
       aria-label="What did I miss"
-      className="animate-fade-up w-full max-w-md shrink-0 rounded-md border border-signal-500/30 bg-signal-500/[0.06] lg:w-[26rem]"
+      className="animate-fade-up w-full max-w-md shrink-0 rounded-panel border border-signal-500/30 bg-signal-500/[0.06] lg:w-[26rem]"
     >
       <div className="flex items-center gap-2 border-b border-signal-500/20 px-3.5 py-2">
         <Icon name="sparkle" size={13} className="shrink-0 text-signal-400" />

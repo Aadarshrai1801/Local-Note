@@ -390,6 +390,7 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
               tone="canvas"
               showCorrections
               corrections={corrections}
+              correctionsState={dictionary.loading ? 'loading' : dictionary.error ? 'error' : 'ready'}
               onSpeakerClick={(label) => {
                 setRenamingSpeaker(label)
                 document

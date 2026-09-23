@@ -97,7 +97,7 @@ export function ExportMenu({
               type="button"
               role="menuitem"
               onClick={() => {
-                setOpen(false)
+                close()
                 onExport(option.format)
               }}
               className="flex w-full items-baseline gap-3 px-3.5 py-2.5 text-left transition-colors duration-150 ease-spring hover:bg-ink-800/70"

@@ -21,6 +21,7 @@ import {
 } from '@/lib/store'
 import { RecordingBar } from '@/components/RecordingBar'
 import { Sidebar } from '@/components/Sidebar'
+import { GlobalShortcuts } from '@/components/GlobalShortcuts'
 import { ToastViewport } from '@/components/Toast'
 import { Dictionary } from '@/views/Dictionary'
 import { Home } from '@/views/Home'
@@ -29,6 +30,7 @@ import { MeetingDetailView } from '@/views/MeetingDetail'
 import { Search } from '@/views/Search'
 import { Settings } from '@/views/Settings'
 import { Setup } from '@/views/Setup'
+import { Snippets } from '@/views/Snippets'
 
 function BusyIndicator(): ReactNode {
   const busy = useBusy()
@@ -42,15 +44,15 @@ function BusyIndicator(): ReactNode {
     >
       <div className="h-px w-full bg-ink-800/60">
         {progress == null ? (
-          <div className="h-px w-1/4 animate-sweep bg-ink-200/80" />
+          <div className="h-px w-1/4 animate-shimmer bg-gradient-to-r from-transparent via-ink-200/80 to-transparent bg-[length:200%_100%]" />
         ) : (
           <div
-            className="h-px bg-ink-200/80 transition-[width] duration-300"
+            className="h-px bg-ink-200/80 transition-[width] duration-300 ease-spring"
             style={{ width: `${Math.round(Math.max(0, Math.min(1, progress)) * 100)}%` }}
           />
         )}
       </div>
-      <p className="absolute left-1/2 top-2 -translate-x-1/2 rounded border border-ink-700 bg-ink-900/95 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-300 shadow-panel">
+      <p className="glass-strong absolute left-1/2 top-2 -translate-x-1/2 rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-300">
         {busy.label}
       </p>
     </div>
@@ -101,6 +103,8 @@ function CurrentView(): ReactNode {
       return <Search />
     case 'dictionary':
       return <Dictionary />
+    case 'snippets':
+      return <Snippets />
     case 'settings':
       return <Settings />
     case 'setup':
@@ -122,6 +126,7 @@ function Shell(): ReactNode {
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <BusyIndicator />
         <FirstRunRedirect />
+        <GlobalShortcuts />
         {recordingActive && !isLiveView && <RecordingBar />}
         <div
           className={cx(

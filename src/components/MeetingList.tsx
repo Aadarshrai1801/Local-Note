@@ -122,7 +122,7 @@ export function MeetingList({
     <div className={cx('space-y-7', className)}>
       {pinned.length > 0 && (
         <section aria-label="Pinned meetings">
-          <GroupHeader label="Pinned" count={pinned.length} />
+          <GroupHeader label="Pinned" count={pinned.length} hint="stored on this machine" />
           <ul className="mt-3 space-y-2.5">
             {pinned.map((meeting) => (
               <MeetingCard
@@ -157,13 +157,22 @@ export function MeetingList({
   )
 }
 
-function GroupHeader({ label, count }: { label: string; count: number }): ReactNode {
+function GroupHeader({
+  label,
+  count,
+  hint
+}: {
+  label: string
+  count: number
+  hint?: string
+}): ReactNode {
   return (
     <div className="flex items-baseline gap-3 px-1">
-      <h3 className="eyebrow text-canvas-faint">{label}</h3>
-      <span className="font-mono text-[10px] text-canvas-faint">
+      <h3 className="eyebrow text-canvas-muted">{label}</h3>
+      <span className="font-mono text-[10px] text-canvas-muted">
         {plural(count, 'meeting')}
       </span>
+      {hint && <span className="font-mono text-[10px] text-canvas-faint">· {hint}</span>}
       <span aria-hidden="true" className="h-px flex-1 bg-canvas-hairline" />
     </div>
   )

@@ -100,7 +100,7 @@ export function Snippets(): ReactNode {
               <h3 className="mt-3 text-[13.5px] font-medium tracking-[-0.01em] text-ink-100">
                 {item.title}
               </h3>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-400">{item.detail}</p>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-400">{item.detail}</p>
             </li>
           ))}
         </ul>

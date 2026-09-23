@@ -89,7 +89,7 @@ export function Home(): ReactNode {
         <div className="mt-6 rounded-panel border border-ink-800 bg-ink-900/60">
           <fieldset
             disabled={recording}
-            className="grid gap-4 p-5 disabled:opacity-60 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+            className="grid min-w-0 gap-4 p-5 disabled:opacity-60 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
           >
             <div className="space-y-2">
               <label htmlFor="home-title" className="eyebrow block text-ink-400">

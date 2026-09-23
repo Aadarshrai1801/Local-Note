@@ -42,6 +42,8 @@ export interface TranscriptListProps {
   showCorrections?: boolean
   /** Dictionary entries used to explain which spellings were applied. */
   corrections?: DictionaryTerm[]
+  /** Whether the dictionary behind `corrections` actually loaded. */
+  correctionsState?: 'loading' | 'ready' | 'error'
 }
 
 const SOURCE_LABEL: Record<TranscriptSegment['source'], string> = {
@@ -78,9 +80,9 @@ const TONE = {
     speaker: 'text-canvas-muted',
     speakerYou: 'text-canvas-text',
     speakerHover: 'hover:text-signal-600 focus-visible:text-signal-600',
-    source: 'text-canvas-faint',
+    source: 'text-canvas-muted',
     corrected: 'text-signal-600',
-    confidence: 'text-canvas-faint',
+    confidence: 'text-canvas-muted',
     text: 'text-canvas-text',
     textProvisional: 'text-canvas-muted',
     rail: 'bg-canvas-hairline',
@@ -98,6 +100,7 @@ interface RowProps {
   tone: TranscriptTone
   showCorrections: boolean
   corrections: DictionaryTerm[]
+  correctionsState: 'loading' | 'ready' | 'error'
   onSpeakerClick?: (label: string) => void
 }
 
@@ -111,6 +114,7 @@ const TranscriptRow = memo(function TranscriptRow({
   tone,
   showCorrections,
   corrections,
+  correctionsState,
   onSpeakerClick
 }: RowProps): ReactNode {
   const label = speakerName ?? segment.speakerLabel ?? 'Unknown speaker'
@@ -163,7 +167,7 @@ const TranscriptRow = memo(function TranscriptRow({
               type="button"
               onClick={() => onSpeakerClick(segment.speakerLabel ?? '')}
               className={cx(
-                'rounded text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ease-spring',
+                '-ml-1 rounded-full px-1 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ease-spring',
                 colors.speakerHover,
                 label === 'You' ? colors.speakerYou : colors.speaker
               )}
@@ -271,7 +275,7 @@ const TranscriptRow = memo(function TranscriptRow({
                 : 'border-ink-800 bg-ink-950/60'
             )}
           >
-            <p className={cx('eyebrow', tone === 'canvas' ? 'text-canvas-faint' : 'text-ink-500')}>
+            <p className={cx('eyebrow', tone === 'canvas' ? 'text-canvas-muted' : 'text-ink-500')}>
               Dictionary correction
             </p>
             <p
@@ -293,7 +297,26 @@ const TranscriptRow = memo(function TranscriptRow({
               kept anywhere. There is no before/after to compare: the line above is the corrected
               transcript, not a diff.
             </p>
-            {matchedCorrections.length > 0 ? (
+            {correctionsState === 'loading' ? (
+              <p
+                className={cx(
+                  'mt-1.5 text-[12px] leading-relaxed',
+                  tone === 'canvas' ? 'text-canvas-muted' : 'text-ink-400'
+                )}
+              >
+                Checking your dictionary for the spellings involved…
+              </p>
+            ) : correctionsState === 'error' ? (
+              <p
+                className={cx(
+                  'mt-1.5 text-[12px] leading-relaxed',
+                  tone === 'canvas' ? 'text-canvas-muted' : 'text-ink-400'
+                )}
+              >
+                Your dictionary could not be loaded, so the spellings involved cannot be listed
+                here. The line above is still the corrected transcript.
+              </p>
+            ) : matchedCorrections.length > 0 ? (
               <p
                 className={cx(
                   'mt-1.5 text-[12px] leading-relaxed',
@@ -340,7 +363,8 @@ export function TranscriptList({
   className,
   tone = 'dark',
   showCorrections = false,
-  corrections
+  corrections,
+  correctionsState = 'ready'
 }: TranscriptListProps): ReactNode {
   const { setRef, pinned, jumpToLatest } = useStickyScroll<HTMLDivElement>(segments.length, live)
   const handleSpeakerClick = useEventCallback((label: string) => {
@@ -399,6 +423,7 @@ export function TranscriptList({
               tone={tone}
               showCorrections={showCorrections}
               corrections={corrections ?? EMPTY_CORRECTIONS}
+              correctionsState={correctionsState}
               onSpeakerClick={onSpeakerClick ? handleSpeakerClick : undefined}
             />
           ))}

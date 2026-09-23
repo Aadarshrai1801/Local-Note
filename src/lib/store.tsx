@@ -38,9 +38,26 @@ import { errorMessage } from '@/lib/format'
 /* Navigation                                                          */
 /* ------------------------------------------------------------------ */
 
-export type ViewName = 'home' | 'live' | 'meeting' | 'search' | 'dictionary' | 'settings' | 'setup'
+export type ViewName =
+  | 'home'
+  | 'live'
+  | 'meeting'
+  | 'search'
+  | 'dictionary'
+  | 'snippets'
+  | 'settings'
+  | 'setup'
 
-const VIEWS: ViewName[] = ['home', 'live', 'meeting', 'search', 'dictionary', 'settings', 'setup']
+const VIEWS: ViewName[] = [
+  'home',
+  'live',
+  'meeting',
+  'search',
+  'dictionary',
+  'snippets',
+  'settings',
+  'setup'
+]
 
 function toViewName(view: string): ViewName {
   return (VIEWS as string[]).includes(view) ? (view as ViewName) : 'home'

@@ -185,7 +185,7 @@ export function Search(): ReactNode {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2">
-          <label className="flex cursor-pointer items-center gap-2 rounded-full px-2.5 py-1 text-[12.5px] text-ink-300 transition-colors duration-150 ease-spring hover:bg-ink-900/60">
+          <label className="flex cursor-pointer items-center gap-2 rounded-full px-2.5 py-1 text-[13px] text-ink-300 transition-colors duration-150 ease-spring hover:bg-ink-900/60">
             <input
               type="checkbox"
               checked={keyword}
@@ -196,7 +196,7 @@ export function Search(): ReactNode {
           </label>
           <label
             className={cx(
-              'flex cursor-pointer items-center gap-2 rounded-full px-2.5 py-1 text-[12.5px] transition-colors duration-150 ease-spring',
+              'flex cursor-pointer items-center gap-2 rounded-full px-2.5 py-1 text-[13px] transition-colors duration-150 ease-spring',
               llmMissing ? 'text-ink-500' : 'text-ink-300 hover:bg-ink-900/60'
             )}
             title={llmMissing ? 'The local embedding model is not running' : undefined}
@@ -464,7 +464,7 @@ function MeetingGroupCard({ group, query }: { group: MeetingGroup; query: string
           aria-hidden="true"
           className="absolute left-0 right-0 top-[18px] h-px bg-canvas-hairline"
         />
-        <span className="absolute left-0 top-[22px] font-mono text-[9px] uppercase tracking-[0.08em] text-canvas-faint">
+        <span className="absolute left-0 top-[22px] font-mono text-[9px] uppercase tracking-[0.08em] text-canvas-muted">
           0:00
         </span>
         {group.hits.map((hit) => (
@@ -478,7 +478,7 @@ function MeetingGroupCard({ group, query }: { group: MeetingGroup; query: string
             style={{ left: `${Math.min(98, Math.max(0, ((hit.startMs ?? 0) / span) * 100))}%` }}
           />
         ))}
-        <span className="absolute right-0 top-[22px] font-mono text-[9px] uppercase tracking-[0.08em] text-canvas-faint">
+        <span className="absolute right-0 top-[22px] font-mono text-[9px] uppercase tracking-[0.08em] text-canvas-muted">
           latest hit {formatClock(span)}
         </span>
       </div>
@@ -520,7 +520,7 @@ function MeetingGroupCard({ group, query }: { group: MeetingGroup; query: string
         ))}
       </ul>
       {group.hits.length > 6 && (
-        <p className="border-t border-canvas-hairline px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-canvas-faint">
+        <p className="border-t border-canvas-hairline px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-canvas-muted">
           {group.hits.length - 6} more hits in this meeting — open it to read the transcript
         </p>
       )}

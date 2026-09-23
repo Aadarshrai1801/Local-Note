@@ -7,7 +7,7 @@
  * credible if you can read the paths.
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import type { AppPaths, AppSettings, DictionaryTerm, SetupCheck } from '@shared/types'
+import type { AppPaths, AppSettings, SetupCheck } from '@shared/types'
 import type { WhisperModelInfo } from '@shared/api'
 import { api } from '@/lib/api'
 import {
@@ -253,9 +253,9 @@ function ModelsSection({ settings }: { settings: AppSettings }): ReactNode {
         description="Whisper runs entirely on this CPU. Bigger models are more accurate and slower; they are downloaded once, from the internet, when you ask for them."
       />
 
-      <div className="mb-4 flex items-start gap-2 rounded-md border border-ink-800 bg-ink-900/50 px-3.5 py-3">
+      <div className="mb-4 flex items-start gap-2 rounded-card border border-ink-800 bg-ink-900/50 px-3.5 py-3">
         <Icon name="info" size={14} className="mt-0.5 shrink-0 text-ink-500" />
-        <p className="text-[12.5px] leading-relaxed text-ink-300">
+        <p className="text-[13.5px] leading-relaxed text-ink-300">
           Downloading a model is the only time this app uses the network, and it only happens when
           you press the button. Whisper models come from Hugging Face; Ollama models from the Ollama
           registry. Nothing about you, your meetings, or your machine is sent with the request.
@@ -263,7 +263,7 @@ function ModelsSection({ settings }: { settings: AppSettings }): ReactNode {
       </div>
 
       {backendBusy && downloading && (
-        <div className="mb-4 rounded-md border border-signal-500/25 bg-signal-500/[0.05] px-3.5 py-3">
+        <div className="mb-4 rounded-card border border-signal-500/25 bg-signal-500/[0.05] px-3.5 py-3">
           <p className="flex items-center gap-2 text-[13px] text-signal-200">
             <Icon name="download" size={13} />
             {backendBusy.label}
@@ -287,7 +287,7 @@ function ModelsSection({ settings }: { settings: AppSettings }): ReactNode {
       ) : models.loading && list.length === 0 ? (
         <LoadingBlock label="Checking which models are on disk…" />
       ) : (
-        <ul className="divide-y divide-ink-800/70 overflow-hidden rounded-md border border-ink-800">
+        <ul className="divide-y divide-ink-800/70 overflow-hidden rounded-panel border border-ink-800">
           {list.map((model) => {
             const active = settings.whisperModel === model.id
             return (
@@ -310,13 +310,13 @@ function ModelsSection({ settings }: { settings: AppSettings }): ReactNode {
                     <span className="font-mono text-[11px] text-ink-500">{model.id}</span>
                     {model.englishOnly && <span className="chip">english only</span>}
                     {model.downloaded ? (
-                      <span className="chip chip-signal">on disk</span>
+                      <span className="chip bg-signal-500/15 text-signal-300">on disk</span>
                     ) : (
                       <span className="chip">not downloaded</span>
                     )}
-                    {active && <span className="chip chip-signal">in use</span>}
+                    {active && <span className="chip bg-signal-500/15 text-signal-300">in use</span>}
                   </p>
-                  <p className="mt-1 max-w-[68ch] text-[12.5px] leading-relaxed text-ink-400">
+                  <p className="mt-1 max-w-[68ch] text-[13.5px] leading-relaxed text-ink-400">
                     {model.note}
                   </p>
                   <p className="mt-1.5 font-mono text-[11px] text-ink-500">
@@ -423,7 +423,7 @@ function AiSection({ settings }: { settings: AppSettings }): ReactNode {
 
       <div
         className={cx(
-          'flex flex-wrap items-center gap-3 rounded-md border px-3.5 py-3',
+          'flex flex-wrap items-center gap-3 rounded-card border px-3.5 py-3',
           llm?.available
             ? 'border-signal-500/25 bg-signal-500/[0.05]'
             : 'border-ink-800 bg-ink-900/50'
@@ -460,13 +460,13 @@ function AiSection({ settings }: { settings: AppSettings }): ReactNode {
       </div>
 
       {llm?.guidance && (
-        <p className="mt-3 flex items-start gap-2 text-[12.5px] leading-relaxed text-ink-400">
+        <p className="mt-3 flex items-start gap-2 text-[13.5px] leading-relaxed text-ink-400">
           <Icon name="info" size={13} className="mt-0.5 shrink-0 text-ink-500" />
           {llm.guidance}
         </p>
       )}
 
-      <div className="mt-4 divide-y divide-ink-800/70 rounded-md border border-ink-800 px-3.5">
+      <div className="mt-4 divide-y divide-ink-800/70 rounded-panel border border-ink-800 px-3.5">
         <Field
           label="Chat model"
           hint={settings.ollamaModel ?? 'none selected'}
@@ -479,7 +479,7 @@ function AiSection({ settings }: { settings: AppSettings }): ReactNode {
                   type="button"
                   onClick={() => void saveSettings({ ollamaModel: model.name })}
                   className={cx(
-                    'rounded-md border px-2.5 py-1.5 text-left transition-colors',
+                    'rounded-control border px-2.5 py-1.5 text-left transition-colors duration-150 ease-spring',
                     settings.ollamaModel === model.name
                       ? 'border-signal-500/40 bg-signal-500/10 text-signal-200'
                       : 'border-ink-800 text-ink-300 hover:border-ink-700 hover:text-ink-100'
@@ -493,7 +493,7 @@ function AiSection({ settings }: { settings: AppSettings }): ReactNode {
               ))}
             </div>
           ) : (
-            <p className="text-[12.5px] text-ink-500">
+            <p className="text-[13.5px] text-ink-500">
               No models listed. Install Ollama, then run{' '}
               <code className="font-mono text-ink-300">ollama pull llama3.1:8b</code>.
             </p>
@@ -517,7 +517,7 @@ function AiSection({ settings }: { settings: AppSettings }): ReactNode {
                 if (event.key === 'Enter') event.currentTarget.blur()
               }}
               placeholder="nomic-embed-text"
-              className="field field-sm max-w-xs font-mono text-[12px]"
+              className="field max-w-xs py-1.5 font-mono text-[12px]"
               aria-label="Embedding model"
             />
             <p className="text-[12px] text-ink-500">
@@ -534,7 +534,7 @@ function AiSection({ settings }: { settings: AppSettings }): ReactNode {
               onKeyDown={(event) => {
                 if (event.key === 'Enter') void saveHost()
               }}
-              className="field field-sm font-mono text-[12px]"
+              className="field py-1.5 font-mono text-[12px]"
               aria-label="Ollama host"
               spellCheck={false}
             />
@@ -599,19 +599,19 @@ function VoiceProfilesSection(): ReactNode {
   return (
     <div className="mt-8">
       <div className="flex items-baseline gap-3 pb-2">
-        <h3 className="section-title">Voice profiles</h3>
+        <h3 className="eyebrow text-ink-400">Voice profiles</h3>
         <span className="font-mono text-[11px] text-ink-600">{plural(list.length, 'profile')}</span>
         <span aria-hidden="true" className="h-px flex-1 bg-ink-800/70" />
       </div>
       {profiles.error ? (
         <ErrorState message={profiles.error} onRetry={profiles.refresh} compact />
       ) : list.length === 0 ? (
-        <p className="text-[12.5px] leading-relaxed text-ink-500">
+        <p className="text-[13.5px] leading-relaxed text-ink-500">
           None yet. Profiles are created when diarization is available and are stored as embedding
           centroids — numbers, not recordings.
         </p>
       ) : (
-        <ul className="divide-y divide-ink-800/70 rounded-md border border-ink-800">
+        <ul className="divide-y divide-ink-800/70 rounded-panel border border-ink-800">
           {list.map((profile) => (
             <li key={profile.id} className="flex items-center gap-3 px-3.5 py-2.5">
               <Icon name="users" size={14} className="shrink-0 text-ink-500" />
@@ -659,7 +659,7 @@ function AudioSection({ settings }: { settings: AppSettings }): ReactNode {
         description="System audio is recorded from the default playback device (WASAPI loopback), the microphone from the default recording device. Device IDs are the Windows endpoint IDs; leave blank for the system default."
       />
 
-      <div className="divide-y divide-ink-800/70 rounded-md border border-ink-800 px-3.5">
+      <div className="divide-y divide-ink-800/70 rounded-panel border border-ink-800 px-3.5">
         <Field label="Capture microphone" hint={settings.captureMic ? 'on' : 'off'}>
           <div className="flex flex-wrap items-center gap-4">
             <Toggle
@@ -683,7 +683,7 @@ function AudioSection({ settings }: { settings: AppSettings }): ReactNode {
                 if (event.key === 'Enter') void saveDevice('systemDeviceId', systemDevice)
               }}
               placeholder="default"
-              className="field field-sm font-mono text-[12px]"
+              className="field py-1.5 font-mono text-[12px]"
               aria-label="System audio device ID"
               spellCheck={false}
             />
@@ -707,7 +707,7 @@ function AudioSection({ settings }: { settings: AppSettings }): ReactNode {
                 if (event.key === 'Enter') void saveDevice('micDeviceId', micDevice)
               }}
               placeholder="default"
-              className="field field-sm font-mono text-[12px]"
+              className="field py-1.5 font-mono text-[12px]"
               aria-label="Microphone device ID"
               spellCheck={false}
             />
@@ -775,7 +775,7 @@ function AudioSection({ settings }: { settings: AppSettings }): ReactNode {
                 void saveSettings({ audioRetentionDays: Number(event.target.value) })
               }
               aria-label="Audio retention in days"
-              className="field field-sm w-44"
+              className="field w-44 py-1.5"
             >
               <option value={0}>Keep forever</option>
               <option value={1}>1 day</option>
@@ -789,6 +789,207 @@ function AudioSection({ settings }: { settings: AppSettings }): ReactNode {
             </p>
           </div>
         </Field>
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Capture bar                                                        */
+/* ------------------------------------------------------------------ */
+
+function CaptureBarSection({ settings }: { settings: AppSettings }): ReactNode {
+  const [hotkey, setHotkey] = useState(settings.captureHotkey)
+  const [savingHotkey, setSavingHotkey] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [nonce, setNonce] = useState(0)
+
+  const status = useAsyncData(() => api.getCaptureBarStatus(), [nonce], {
+    toastOnError: 'Could not read the capture bar status'
+  })
+  const live = status.data
+  const registered = live?.hotkeyRegistered ?? null
+
+  useEffect(() => {
+    setHotkey(settings.captureHotkey)
+  }, [settings.captureHotkey])
+
+  const saveHotkey = async (): Promise<void> => {
+    const value = hotkey.trim()
+    if (value.length === 0 || value === settings.captureHotkey) return
+    setSavingHotkey(true)
+    const saved = await saveSettings({ captureHotkey: value })
+    setSavingHotkey(false)
+    if (saved) {
+      pushToast('info', 'Global shortcut updated.')
+      setNonce((n) => n + 1)
+    }
+  }
+
+  const resetPosition = async (): Promise<void> => {
+    setResetting(true)
+    const ok = await attempt(
+      async () => {
+        await api.resetCaptureBarPosition()
+        return true
+      },
+      { errorPrefix: 'Could not reset the capture bar position' }
+    )
+    setResetting(false)
+    if (ok) {
+      pushToast('info', 'Capture bar returned to the bottom centre.')
+      setNonce((n) => n + 1)
+    }
+  }
+
+  return (
+    <div>
+      <SectionHeader
+        title="Capture bar"
+        description="The capture bar is a small always-on-top window that can start and stop recording without opening the Hub. It is driven by the same recorder, so the level bars show real audio."
+      />
+
+      <div className="divide-y divide-ink-800/70 rounded-panel border border-ink-800 px-3.5">
+        <Field label="Show the floating capture bar" hint={settings.captureBarEnabled ? 'on' : 'off'}>
+          <div className="flex flex-wrap items-center gap-4">
+            <Toggle
+              label="Keep the capture bar on the desktop"
+              checked={settings.captureBarEnabled}
+              onChange={(next) => void saveSettings({ captureBarEnabled: next })}
+            />
+            <p className="text-[13px] leading-relaxed text-ink-500">
+              Turning this off leaves the global shortcut working; the bar itself simply never
+              appears.
+            </p>
+          </div>
+        </Field>
+
+        <Field
+          label="Hide it while idle"
+          hint={settings.captureBarHideWhenIdle ? 'visible only while recording' : 'always visible'}
+        >
+          <div className="flex flex-wrap items-center gap-4">
+            <Toggle
+              label="Hide the bar until capture starts"
+              checked={settings.captureBarHideWhenIdle}
+              disabled={!settings.captureBarEnabled}
+              onChange={(next) => void saveSettings({ captureBarHideWhenIdle: next })}
+            />
+            <p className="text-[13px] leading-relaxed text-ink-500">
+              With this on, the bar sleeps out of sight and appears the moment a session starts.
+            </p>
+          </div>
+        </Field>
+
+        <Field label="Global shortcut" hint={`currently ${settings.captureHotkey}`}>
+          <div className="flex max-w-lg items-center gap-2">
+            <input
+              value={hotkey}
+              onChange={(event) => setHotkey(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') void saveHotkey()
+              }}
+              placeholder="CommandOrControl+Shift+Space"
+              className="field py-1.5 font-mono text-[13.5px]"
+              aria-label="Global capture shortcut"
+              aria-describedby="capture-hotkey-hint"
+              spellCheck={false}
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={savingHotkey}
+              disabled={hotkey.trim().length === 0 || hotkey.trim() === settings.captureHotkey}
+              onClick={() => void saveHotkey()}
+            >
+              Save
+            </Button>
+          </div>
+          <p id="capture-hotkey-hint" className="mt-2 max-w-[72ch] text-[13px] leading-relaxed text-ink-500">
+            Electron accelerator syntax, for example{' '}
+            <code className="font-mono text-ink-300">CommandOrControl+Shift+Space</code>. Use{' '}
+            <code className="font-mono text-ink-300">CommandOrControl</code> so the same setting
+            works on Windows and macOS, and avoid combinations another app already owns.
+          </p>
+        </Field>
+
+        <Field label="Bar position" hint="remembered between launches">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={resetting}
+              icon={<Icon name="target" size={13} />}
+              onClick={() => void resetPosition()}
+            >
+              Reset bar position
+            </Button>
+            <p className="text-[13px] leading-relaxed text-ink-500">
+              Moves the bar back to the bottom centre of the primary display.
+            </p>
+          </div>
+        </Field>
+      </div>
+
+      {/* Live registration status --------------------------------- */}
+      <div
+        role="status"
+        className={cx(
+          'mt-4 rounded-card border px-3.5 py-3',
+          registered === false
+            ? 'border-ember-500/30 bg-ember-500/[0.06]'
+            : 'border-ink-800 bg-ink-900/50'
+        )}
+      >
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span
+            aria-hidden="true"
+            className={cx(
+              'h-2 w-2 shrink-0 rounded-full',
+              registered == null
+                ? 'bg-ink-600'
+                : registered
+                  ? 'bg-emerald-400'
+                  : 'bg-ember-400'
+            )}
+          />
+          <span className="text-[13.5px] text-ink-100">
+            {status.loading && live == null
+              ? 'Checking the shortcut…'
+              : registered == null
+                ? 'Shortcut status unknown'
+                : registered
+                  ? 'Global shortcut is registered'
+                  : 'Global shortcut is not available'}
+          </span>
+          {live && (
+            <span className="font-mono text-[11px] text-ink-500">
+              {live.hotkey} · bar {live.enabled ? 'enabled' : 'disabled'}
+              {live.hideWhenIdle ? ' · hidden while idle' : ''}
+            </span>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto"
+            loading={status.loading}
+            icon={<Icon name="refresh" size={13} />}
+            onClick={() => setNonce((n) => n + 1)}
+          >
+            Re-check
+          </Button>
+        </div>
+
+        {registered === false && (
+          <p className="mt-2.5 flex items-start gap-2 text-[13px] leading-relaxed text-ember-200">
+            <Icon name="alert" size={14} className="mt-0.5 shrink-0 text-ember-400" />
+            <span>
+              Another application already owns this combination, so the shortcut will not start
+              capture. Pick a different one above, or free it in the app that owns it. Everything
+              else — including the capture bar itself — still works.
+            </span>
+          </p>
+        )}
       </div>
     </div>
   )
@@ -830,7 +1031,7 @@ function DataSection(): ReactNode {
         description="Everything Local Note stores is under these folders. There is no server-side copy, so a backup is simply a copy of the data folder."
       />
 
-      <div className="rounded-md border border-ink-800 bg-ink-900/50 px-3.5 py-2">
+      <div className="rounded-panel border border-ink-800 bg-ink-900/50 px-3.5 py-2">
         {paths == null ? (
           <div className="space-y-3 py-3" aria-busy="true">
             <Skeleton width="100%" />
@@ -870,12 +1071,12 @@ function DataSection(): ReactNode {
         </Button>
       </div>
 
-      <div className="mt-8 rounded-md border border-red-500/25 bg-red-500/[0.05] px-3.5 py-3.5">
-        <h3 className="flex items-center gap-2 text-[13.5px] font-medium text-red-200">
+      <div className="mt-8 rounded-panel border border-danger-500/25 bg-danger-500/[0.05] px-3.5 py-3.5">
+        <h3 className="flex items-center gap-2 text-[13.5px] font-medium text-danger-400">
           <Icon name="alert" size={14} />
           Delete all data
         </h3>
-        <p className="mt-2 max-w-[72ch] text-[12.5px] leading-relaxed text-ink-300">
+        <p className="mt-2 max-w-[72ch] text-[13.5px] leading-relaxed text-ink-300">
           There is no in-app wipe yet, because deleting is not recoverable here. To remove
           everything: close Local Note, then delete the data folder shown above. That removes the
           database, kept audio, downloaded models and logs. Windows will ask you to confirm.
@@ -889,7 +1090,7 @@ function DataSection(): ReactNode {
         </ul>
         {confirmReset ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-[12.5px] text-ink-300">
+            <span className="text-[13.5px] text-ink-300">
               Nothing is deleted from here. Copy the command to do it by hand?
             </span>
             <Button
@@ -917,7 +1118,7 @@ function DataSection(): ReactNode {
           <Button
             size="sm"
             variant="ghost"
-            className="mt-3 text-red-300 hover:bg-red-500/10"
+            className="mt-3 text-danger-400 hover:bg-danger-500/10"
             icon={<Icon name="trash" size={13} />}
             onClick={() => setConfirmReset(true)}
           >
@@ -967,7 +1168,7 @@ function DiagnosticsSection(): ReactNode {
       />
 
       <div className="flex items-center gap-2 pb-2">
-        <h3 className="section-title">Setup checks</h3>
+        <h3 className="eyebrow text-ink-400">Setup checks</h3>
         <span aria-hidden="true" className="h-px flex-1 bg-ink-800/70" />
         <Button
           size="sm"
@@ -984,7 +1185,7 @@ function DiagnosticsSection(): ReactNode {
       ) : checks.loading && checkList.length === 0 ? (
         <LoadingBlock label="Running checks…" />
       ) : (
-        <ul className="divide-y divide-ink-800/70 rounded-md border border-ink-800">
+        <ul className="divide-y divide-ink-800/70 rounded-panel border border-ink-800">
           {checkList.map((check) => (
             <CheckRow key={check.id} check={check} />
           ))}
@@ -992,11 +1193,11 @@ function DiagnosticsSection(): ReactNode {
       )}
 
       <div className="mt-8 flex items-center gap-2 pb-2">
-        <h3 className="section-title">Audio capture helper</h3>
+        <h3 className="eyebrow text-ink-400">Audio capture helper</h3>
         <span aria-hidden="true" className="h-px flex-1 bg-ink-800/70" />
       </div>
-      <div className="rounded-md border border-ink-800 bg-ink-900/50 px-3.5 py-3">
-        <p className="max-w-[72ch] text-[12.5px] leading-relaxed text-ink-400">
+      <div className="rounded-panel border border-ink-800 bg-ink-900/50 px-3.5 py-3">
+        <p className="max-w-[72ch] text-[13.5px] leading-relaxed text-ink-400">
           The recorder is a small C# program that P/Invokes the Windows Core Audio APIs directly. It
           is compiled with the csc.exe that ships with Windows — no .NET SDK, no NuGet, no virtual
           audio cable. Rebuild it if capture fails with a compiler or version error.
@@ -1016,7 +1217,7 @@ function DiagnosticsSection(): ReactNode {
       </div>
 
       <div className="mt-8 flex items-center gap-2 pb-2">
-        <h3 className="section-title">Log tail</h3>
+        <h3 className="eyebrow text-ink-400">Log tail</h3>
         <span className="font-mono text-[11px] text-ink-600">newest last</span>
         <span aria-hidden="true" className="h-px flex-1 bg-ink-800/70" />
         <Button
@@ -1046,10 +1247,10 @@ function DiagnosticsSection(): ReactNode {
 function CheckRow({ check }: { check: SetupCheck }): ReactNode {
   const tone =
     check.status === 'ok'
-      ? { dot: 'bg-signal-400', text: 'text-signal-300', label: 'ok' }
+      ? { dot: 'bg-emerald-400', text: 'text-emerald-300', label: 'ok' }
       : check.status === 'warn'
         ? { dot: 'bg-ember-400', text: 'text-ember-300', label: 'warning' }
-        : { dot: 'bg-red-400', text: 'text-red-300', label: 'missing' }
+        : { dot: 'bg-danger-400', text: 'text-danger-400', label: 'missing' }
 
   return (
     <li className="flex items-start gap-3 px-3.5 py-3">
@@ -1061,11 +1262,11 @@ function CheckRow({ check }: { check: SetupCheck }): ReactNode {
             {tone.label}
           </span>
         </p>
-        <p className="mt-0.5 max-w-[72ch] text-[12.5px] leading-relaxed text-ink-400">
+        <p className="mt-0.5 max-w-[72ch] text-[13.5px] leading-relaxed text-ink-400">
           {check.detail}
         </p>
         {check.action && (
-          <p className="mt-1.5 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-ink-300">
+          <p className="mt-1.5 flex items-start gap-1.5 text-[13.5px] leading-relaxed text-ink-300">
             <Icon name="arrowUpRight" size={13} className="mt-0.5 shrink-0 text-ink-500" />
             <span>{check.action}</span>
           </p>

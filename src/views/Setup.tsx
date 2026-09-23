@@ -128,7 +128,7 @@ export function Setup(): ReactNode {
       </p>
 
       {/* Status ----------------------------------------------------- */}
-      <section className="mt-7 rounded-md border border-ink-800 bg-ink-900/50 px-3.5 py-3">
+      <section className="mt-7 rounded-panel border border-ink-800 bg-ink-900/50 px-3.5 py-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="eyebrow text-ink-400">Current status</span>
           <StatusPill
@@ -173,13 +173,13 @@ export function Setup(): ReactNode {
         </div>
 
         {loaded && blocking.length === 0 && (
-          <p className="mt-3 flex items-center gap-2 text-[12.5px] text-signal-300">
+          <p className="mt-3 flex items-center gap-2 text-[13.5px] text-signal-300">
             <Icon name="checkCircle" size={14} />
             Everything needed for transcription is in place.
           </p>
         )}
         {blocking.length > 0 && (
-          <p className="mt-3 flex items-start gap-2 text-[12.5px] leading-relaxed text-ink-300">
+          <p className="mt-3 flex items-start gap-2 text-[13.5px] leading-relaxed text-ink-300">
             <Icon name="alert" size={13} className="mt-0.5 shrink-0 text-ember-400" />
             <span>
               {blocking.length === 1
@@ -191,7 +191,7 @@ export function Setup(): ReactNode {
           </p>
         )}
         {blocking.length === 0 && warnings.length > 0 && (
-          <p className="mt-3 text-[12.5px] leading-relaxed text-ink-500">
+          <p className="mt-3 text-[13.5px] leading-relaxed text-ink-500">
             Optional, not blocking: {warnings.map((check) => check.label).join(', ')}.
           </p>
         )}
@@ -200,9 +200,9 @@ export function Setup(): ReactNode {
       {/* Steps ------------------------------------------------------ */}
       <ol className="mt-8 space-y-6">
         {STEPS.map((step, index) => (
-          <li key={step.id} className="rounded-md border border-ink-800">
+          <li key={step.id} className="rounded-panel border border-ink-800">
             <header className="flex items-start gap-3 border-b border-ink-800/80 px-4 py-3">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-ink-700 font-mono text-[11px] text-ink-400">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-control border border-ink-700 font-mono text-[11px] text-ink-400">
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1">
@@ -245,7 +245,7 @@ export function Setup(): ReactNode {
       </ol>
 
       {/* Escape hatch ---------------------------------------------- */}
-      <section className="mt-8 rounded-md border border-ink-800 bg-ink-900/40 px-4 py-4">
+      <section className="mt-8 rounded-panel border border-ink-800 bg-ink-900/40 px-4 py-4">
         <h2 className="text-[14.5px] font-medium tracking-[-0.01em] text-ink-100">
           Not ready to install anything?
         </h2>
@@ -271,7 +271,7 @@ export function Setup(): ReactNode {
         </div>
       </section>
 
-      <p className="mt-8 max-w-[74ch] border-t border-ink-800 pt-4 text-[12.5px] leading-relaxed text-ink-500">
+      <p className="mt-8 max-w-[74ch] border-t border-ink-800 pt-4 text-[13.5px] leading-relaxed text-ink-500">
         Everything runs locally: audio is captured through WASAPI, transcribed by Whisper on your
         CPU, and summarised by a model you already have. The only network requests in the whole app
         are the model downloads you start yourself.
@@ -293,7 +293,7 @@ function StatusPill({
     <span className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.08em]">
       <span
         aria-hidden="true"
-        className={cx('h-1.5 w-1.5 rounded-full', ok ? 'bg-signal-400' : 'bg-ink-600')}
+        className={cx('h-1.5 w-1.5 rounded-full', ok ? 'bg-emerald-400' : 'bg-ink-600')}
       />
       <span className="text-ink-500">{label}</span>
       <span className="normal-case tracking-normal text-ink-300">{detail}</span>
@@ -304,12 +304,12 @@ function StatusPill({
 function CheckLine({ check }: { check: SetupCheck }): ReactNode {
   const tone =
     check.status === 'ok'
-      ? { text: 'text-signal-300', dot: 'bg-signal-400' }
+      ? { text: 'text-emerald-300', dot: 'bg-emerald-400' }
       : check.status === 'warn'
         ? { text: 'text-ember-300', dot: 'bg-ember-400' }
-        : { text: 'text-red-300', dot: 'bg-red-400' }
+        : { text: 'text-danger-400', dot: 'bg-danger-400' }
   return (
-    <li className="flex items-start gap-2 text-[12.5px] leading-relaxed">
+    <li className="flex items-start gap-2 text-[13.5px] leading-relaxed">
       <span aria-hidden="true" className={cx('mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full', tone.dot)} />
       <span className="min-w-0">
         <span className="text-ink-200">{check.label}</span>
@@ -334,7 +334,7 @@ function CommandBlock({
   const [copied, setCopied] = useState(false)
 
   return (
-    <div className="rounded-md border border-ink-800 bg-ink-950">
+    <div className="rounded-card border border-ink-800 bg-ink-950">
       <div className="flex items-center gap-2 border-b border-ink-800/70 px-2.5 py-1">
         <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-500">
           {label}
@@ -350,7 +350,7 @@ function CommandBlock({
             setCopied(true)
             window.setTimeout(() => setCopied(false), 1500)
           }}
-          className="ml-auto flex items-center gap-1.5 rounded px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-500 transition-colors hover:bg-ink-800 hover:text-ink-200"
+          className="ml-auto flex items-center gap-1.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-500 transition-colors duration-150 ease-spring hover:bg-ink-800 hover:text-ink-200"
         >
           <Icon name={copied ? 'check' : 'copy'} size={11} />
           {copied ? 'copied' : 'copy'}

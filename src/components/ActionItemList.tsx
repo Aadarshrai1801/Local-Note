@@ -216,7 +216,7 @@ export function ActionItemList({
           }}
           placeholder="Add an action item…"
           aria-label="New action item"
-          className="field flex-1 py-1.5 text-[12.5px]"
+          className="field flex-1 py-1.5 text-[13.5px]"
         />
         <input
           value={assignee}

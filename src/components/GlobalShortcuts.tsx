@@ -10,7 +10,7 @@
  * The hints are surfaced inline with <Kbd> next to the controls they trigger.
  */
 import { useEffect, type ReactNode } from 'react'
-import { go, startRecording, useIsRecording, useNav, useSettings } from '@/lib/store'
+import { go, pushToast, startRecording, useIsRecording, useNav, useSettings, useStatus } from '@/lib/store'
 
 export const HOME_SEARCH_ID = 'home-search'
 export const SEARCH_QUERY_ID = 'search-query'
@@ -37,8 +37,11 @@ export function GlobalShortcuts(): ReactNode {
   const nav = useNav()
   const recording = useIsRecording()
   const settings = useSettings()
+  const { status, loaded } = useStatus()
 
   useEffect(() => {
+    const sttMissing = loaded && status != null && !status.stt.available
+
     const focusSearch = (): void => {
       if (nav.view === 'home') {
         focusWhenReady(HOME_SEARCH_ID)
@@ -68,6 +71,11 @@ export function GlobalShortcuts(): ReactNode {
           go('live')
           return
         }
+        if (sttMissing) {
+          pushToast('warn', 'Install the local transcription model before recording.')
+          go('setup')
+          return
+        }
         void startRecording({
           targets: { system: true, mic: settings?.captureMic ?? true },
           model: settings?.whisperModel,
@@ -84,7 +92,7 @@ export function GlobalShortcuts(): ReactNode {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [nav.view, recording, settings])
+  }, [nav.view, recording, settings, status, loaded])
 
   return null
 }
