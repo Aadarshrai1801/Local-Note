@@ -58,6 +58,7 @@ import {
 import { Recorder } from './audio/recorder'
 import { ensureRecorderBuilt } from './audio/recorder-build'
 import { SessionManager } from './audio/session'
+import { CaptureOverlay } from './overlay'
 import { Sidecar } from './stt/sidecar'
 import { documentsToContext, extractDocument, importBriefDocument } from './brief/documents'
 import { readIcsFile } from './brief/ics'
@@ -99,6 +100,7 @@ let tray: Tray | null = null
 let session: SessionManager | null = null
 let sidecar: Sidecar | null = null
 let ollama: OllamaClient | null = null
+let overlay: CaptureOverlay | null = null
 let quitting = false
 /** Guards the one-shot async cleanup in `before-quit`. */
 let cleanupComplete = false
@@ -115,6 +117,19 @@ const devOrigin: string | null =
 function emit(event: MainEvent): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(CHANNELS.event, event)
+  }
+}
+
+/**
+ * Sends an event to every open window.
+ *
+ * The floating capture bar is a separate window and needs the same session
+ * events as the Hub, so state updates are broadcast rather than sent to one
+ * window.
+ */
+function broadcast(event: MainEvent): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send(CHANNELS.event, event)
   }
 }
 
@@ -240,6 +255,57 @@ async function createWindow(): Promise<void> {
 }
 
 /**
+ * Builds the tray menu.
+ *
+ * Rebuilt whenever the recording state changes, because the start/stop label
+ * and the capture-bar checkbox both depend on current state.
+ */
+function buildTrayMenu(): Menu {
+  return Menu.buildFromTemplate([
+    {
+      label: 'Open Local Note',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.focus()
+      }
+    },
+    { type: 'separator' },
+    {
+      label: session?.isActive ? 'Stop recording' : 'Start recording',
+      click: () => {
+        void (async () => {
+          const manager = session
+          if (!manager) return
+          try {
+            if (manager.isActive) await manager.stop()
+            else await manager.start({})
+          } catch (error) {
+            log.error('tray capture toggle failed', error)
+          }
+        })()
+      }
+    },
+    {
+      label: 'Show capture bar',
+      type: 'checkbox',
+      checked: getSettings().captureBarEnabled,
+      click: (item) => {
+        updateSettings({ captureBarEnabled: item.checked })
+        overlay?.applySettings()
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        quitting = true
+        app.quit()
+      }
+    }
+  ])
+}
+
+/**
  * Tray icon that changes appearance while recording.
  *
  * The spec calls for the recording state to be unmistakable; an always-visible
@@ -260,30 +326,7 @@ function createTray(): void {
   tray = new Tray(idleImage.resize({ width: 16, height: 16 }))
   tray.setToolTip('Local Note — idle')
 
-  const menu = Menu.buildFromTemplate([
-    {
-      label: 'Open Local Note',
-      click: () => {
-        mainWindow?.show()
-        mainWindow?.focus()
-      }
-    },
-    { type: 'separator' },
-    {
-      label: 'Stop recording',
-      click: () => {
-        void session?.stop().catch((error) => log.error('tray stop failed', error))
-      }
-    },
-    { type: 'separator' },
-    {
-      label: 'Quit',
-      click: () => {
-        quitting = true
-        app.quit()
-      }
-    }
-  ])
+  const menu = buildTrayMenu()
   tray.setContextMenu(menu)
 
   tray.on('double-click', () => {
@@ -301,6 +344,8 @@ function createTray(): void {
         ? `Local Note — RECORDING${state.title ? `: ${state.title}` : ''}`
         : 'Local Note — idle'
     )
+    // The start/stop label depends on whether a recording is running.
+    tray.setContextMenu(buildTrayMenu())
   })
 }
 
@@ -574,6 +619,14 @@ const handlers: Record<InvokeMethod, Handler> = {
     // The STT prompt is derived from settings, so refresh the live pipeline.
     if (session?.isActive) {
       session.setPromptContext?.(next)
+    }
+    // Capture-bar settings take effect immediately rather than at next launch.
+    if (
+      patch.captureBarEnabled !== undefined ||
+      patch.captureBarHideWhenIdle !== undefined ||
+      patch.captureHotkey !== undefined
+    ) {
+      overlay?.applySettings()
     }
     return next
   },
@@ -1142,7 +1195,28 @@ const handlers: Record<InvokeMethod, Handler> = {
     return true
   },
 
-  getLogTail: (args) => tailLog(typeof args[0] === 'number' ? (args[0] as number) : 200)
+  getLogTail: (args) => tailLog(typeof args[0] === 'number' ? (args[0] as number) : 200),
+
+  /* ---------------- floating capture bar ---------------- */
+
+  getCaptureBarStatus: () => {
+    const settings = getSettings()
+    const status = overlay?.hotkeyStatus() ?? {
+      accelerator: settings.captureHotkey,
+      registered: false
+    }
+    return {
+      enabled: settings.captureBarEnabled,
+      hideWhenIdle: settings.captureBarHideWhenIdle,
+      hotkey: status.accelerator,
+      hotkeyRegistered: status.registered
+    }
+  },
+
+  resetCaptureBarPosition: () => {
+    overlay?.resetPosition()
+    return true
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -1221,13 +1295,42 @@ if (!app.requestSingleInstanceLock()) {
 
     // Forward session state changes so the tray can react.
     session.on('state', (state: SessionState) => {
-      emit({ type: 'session', state })
+      broadcast({ type: 'session', state })
+      overlay?.update(state)
+    })
+
+    /* ---------------- floating capture bar ---------------- */
+    overlay = new CaptureOverlay({
+      devUrl: devOrigin,
+      broadcast,
+      preloadPath: join(__dirname, 'preload.js'),
+      onToggleCapture: () => {
+        void (async () => {
+          // Capture the reference so TypeScript keeps the narrowing across awaits.
+          const manager = session
+          if (!manager) return
+          try {
+            if (manager.isActive) {
+              await manager.stop()
+            } else {
+              await manager.start({})
+            }
+          } catch (error) {
+            // A hotkey press that fails must not be silent, but it also must not
+            // open a dialog over whatever the user is doing.
+            const message = error instanceof Error ? error.message : String(error)
+            log.warn('capture toggle from the hotkey failed', error)
+            toast('error', message)
+          }
+        })()
+      }
     })
 
     installOfflineGuard()
     registerIpc()
     await createWindow()
     createTray()
+    overlay.show()
 
     // Remove expired audio from previous sessions.
     try {
@@ -1272,6 +1375,14 @@ if (!app.requestSingleInstanceLock()) {
       } catch (error) {
         log.error('failed to stop session during quit', error)
       }
+      // The overlay unregisters the global hotkey and destroys its window;
+      // leaving either behind would leak the shortcut for the rest of the session.
+      try {
+        overlay?.dispose()
+      } catch {
+        /* already gone */
+      }
+      overlay = null
       try {
         await sidecar?.shutdown()
       } catch {

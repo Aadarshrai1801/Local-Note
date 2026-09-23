@@ -231,6 +231,34 @@ anything smaller tends to drift from the transcript.
 - **Data portability** — one SQLite file plus an audio folder, both in a
   documented path.
 
+### The floating capture bar
+
+A small glass pill that floats above everything else on the desktop, so capture
+can be started and stopped without switching windows — which matters in the
+middle of a call.
+
+- **Global shortcut** (`Ctrl+Shift+Space` by default) toggles recording from
+  anywhere, including above fullscreen apps. Remappable in
+  **Settings → Capture bar**, which also warns when another application already
+  owns the shortcut.
+- **Live audio-level meters** driven by the real microphone and system levels.
+  There is deliberately **no live transcript** in the bar: streaming text into a
+  260 px strip is unreadable and jitters constantly. The transcript belongs in
+  the Hub where it can be read properly.
+- **The meters turn grey when nothing is being heard.** That is the one failure
+  which silently ruins a transcript, so the bar surfaces it immediately instead
+  of leaving you to discover it afterwards.
+- **Click-through when idle.** The bar never blocks clicks on the desktop; it
+  becomes interactive only while the cursor is over it.
+- **Draggable**, and it remembers where you put it. The stored position is
+  validated against the current monitors, so unplugging a display returns the bar
+  to the bottom centre rather than leaving it off-screen.
+- **Toggleable** — hide it entirely, or keep it hidden while idle
+  (Settings → Capture bar).
+
+It is a separate transparent, always-on-top window that never takes focus, so it
+cannot interrupt whatever you are doing.
+
 ### Where your data lives
 
 ```
