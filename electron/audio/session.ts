@@ -391,25 +391,24 @@ export class SessionManager extends EventEmitter {
 
     // The system stream being silent is the single most damaging failure for
     // accuracy: the app then transcribes whatever the microphone overheard,
-    // which is far worse audio. Diagnose the likely cause rather than printing
-    // a generic hint.
-    const device = this.deviceNames.system ?? ''
-    const isBluetooth = /bluetooth|hands-free|headset|airpods|buds|wh-|wf-|beats|jabra|bose/i.test(device)
-
-    if (isBluetooth) {
-      this.pushWarning(
-        `No system audio was captured, and the output device is "${device}", which is a Bluetooth ` +
-          'headset. Windows loopback capture is unreliable on Bluetooth audio — it commonly ' +
-          'returns silence. Switch the Windows default output to your built-in speakers or wired ' +
-          'headphones and record again for a fully accurate transcript.'
-      )
-      return
-    }
+    // which is far worse audio.
+    //
+    // Note: loopback itself is not the usual culprit. It was verified working on
+    // a Bluetooth endpoint, so the warning must not blame the device type. The
+    // common causes are that nothing was playing, that the audio was muted, or
+    // that it was routed somewhere other than the endpoint being captured.
+    const device = this.deviceNames.system
+    const deviceLabel = device ? `"${device}"` : 'the default output device'
 
     this.pushWarning(
-      'No system audio has been detected yet, so only your microphone is being transcribed. ' +
-        'That is much less accurate than the digital capture. Check that the app or call playing ' +
-        `the audio is using the Windows default output device${device ? ` (currently "${device}")` : ''}.`
+      `No system audio has been captured from ${deviceLabel}, so only your microphone is being ` +
+        'transcribed — which is far less accurate than the digital capture.\n\n' +
+        'This usually means the audio was not actually playing through that device, or it was ' +
+        'muted. A Bluetooth headset can also switch into hands-free mode when another app opens ' +
+        'the microphone, which moves playback to a different endpoint than the one being ' +
+        'recorded.\n\n' +
+        'Start playing the audio, then check the level meter above: if the system meter stays ' +
+        'flat, pick the device the audio is really coming out of in Settings > Audio.'
     )
   }
 
