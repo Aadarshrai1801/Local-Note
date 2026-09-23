@@ -110,6 +110,16 @@ function CaptureBar(): React.ReactElement {
     }
   }
 
+  /**
+   * Double-clicking the bar opens the Hub.
+   *
+   * The Hub can be closed while the app keeps running with only this bar, so
+   * the bar needs a way back that does not depend on finding the tray icon.
+   */
+  const openHub = (): void => {
+    void api.openHub().catch(() => undefined)
+  }
+
   const elapsed = session?.elapsedMs ?? 0
   const timer = recording ? formatClock(elapsed) : null
 
@@ -120,6 +130,8 @@ function CaptureBar(): React.ReactElement {
       onMouseLeave={() => setHovered(false)}
     >
       <div
+        onDoubleClick={openHub}
+        title={recording ? 'Recording — double-click to open Local Note' : 'Double-click to open Local Note'}
         className={[
           'drag-region flex h-[48px] w-full items-center gap-3 rounded-full px-3',
           'glass transition-all duration-200 ease-spring',

@@ -265,8 +265,7 @@ function buildTrayMenu(): Menu {
     {
       label: 'Open Local Note',
       click: () => {
-        mainWindow?.show()
-        mainWindow?.focus()
+        void showHub()
       }
     },
     { type: 'separator' },
@@ -306,6 +305,25 @@ function buildTrayMenu(): Menu {
 }
 
 /**
+ * Brings the Hub to the front, recreating it if it was closed.
+ *
+ * Closing the Hub does not quit the app — the floating capture bar is a window
+ * too, so `window-all-closed` never fires and the process stays alive. Without
+ * this, closing the Hub left the app running with only the bar and no way back:
+ * relaunching hits the single-instance lock and defers to the running copy,
+ * whose `mainWindow` is null, so nothing appeared at all.
+ */
+async function showHub(): Promise<void> {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+    return
+  }
+  await createWindow()
+}
+
+/**
  * Tray icon that changes appearance while recording.
  *
  * The spec calls for the recording state to be unmistakable; an always-visible
@@ -330,8 +348,7 @@ function createTray(): void {
   tray.setContextMenu(menu)
 
   tray.on('double-click', () => {
-    mainWindow?.show()
-    mainWindow?.focus()
+    void showHub()
   })
 
   // Keep the tray in sync with the recording state.
@@ -1216,6 +1233,11 @@ const handlers: Record<InvokeMethod, Handler> = {
   resetCaptureBarPosition: () => {
     overlay?.resetPosition()
     return true
+  },
+
+  openHub: async () => {
+    await showHub()
+    return true
   }
 }
 
@@ -1244,11 +1266,10 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.show()
-      mainWindow.focus()
-    }
+    // Relaunching must always surface the Hub. If the user closed it, the
+    // window is gone and a plain show() would do nothing, leaving the app
+    // apparently unresponsive.
+    void showHub()
   })
 
   app.whenReady().then(async () => {

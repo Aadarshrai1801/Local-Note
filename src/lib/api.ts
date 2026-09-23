@@ -1362,6 +1362,10 @@ function createMockApi(): LocalNoteApi {
       await delay(80)
       MOCK_SETTINGS.captureBarPosition = null
     },
+    async openHub() {
+      await delay(60)
+      emit({ type: 'toast', level: 'info', message: 'Mock: would focus the Hub window' })
+    },
 
     onEvent(callback) {
       listeners.add(callback)

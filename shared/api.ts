@@ -147,6 +147,8 @@ export interface LocalNoteApi {
     hotkeyRegistered: boolean
   }>
   resetCaptureBarPosition(): Promise<void>
+  /** Brings the Hub window to the front, recreating it if it was closed. */
+  openHub(): Promise<void>
 
   /* ---------------- events ---------------- */
   onEvent(callback: (event: MainEvent) => void): () => void
@@ -214,7 +216,8 @@ export const INVOKE_METHODS = [
   'openLogs',
   'getLogTail',
   'getCaptureBarStatus',
-  'resetCaptureBarPosition'
+  'resetCaptureBarPosition',
+  'openHub'
 ] as const
 
 export type InvokeMethod = (typeof INVOKE_METHODS)[number]
