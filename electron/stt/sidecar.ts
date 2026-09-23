@@ -85,9 +85,10 @@ export interface PythonCandidate {
 /**
  * Finds Python interpreters worth trying, most-likely-first:
  *  1. an explicit override in settings
- *  2. a project-local .venv (the documented setup path)
- *  3. the `py` launcher
- *  4. `python` on PATH
+ *  2. the LOCALNOTE_PYTHON environment variable
+ *  3. a project-local .venv (the documented setup path)
+ *  4. the `py` launcher
+ *  5. `python` on PATH
  */
 export function pythonCandidates(): PythonCandidate[] {
   const candidates: PythonCandidate[] = []
@@ -97,17 +98,42 @@ export function pythonCandidates(): PythonCandidate[] {
     candidates.push({ path: configured.trim(), label: 'configured in settings' })
   }
 
-  // Look for a project virtualenv relative to both the working directory and
-  // the app's own resource directory. Depending on the working directory alone
-  // is fragile: a shortcut or a different launch directory would hide the venv.
+  // An environment variable makes a packaged or portable install configurable
+  // without going through the UI, and without the app having to guess where the
+  // interpreter lives.
+  const fromEnv = process.env.LOCALNOTE_PYTHON
+  if (fromEnv && fromEnv.trim().length > 0) {
+    candidates.push({ path: fromEnv.trim(), label: 'LOCALNOTE_PYTHON' })
+  }
+
+  // Look for a project virtualenv in every location that could plausibly hold
+  // one. Relying on the working directory alone is fragile: a packaged app
+  // launched from the Start Menu or Explorer has a working directory unrelated
+  // to where the user created their virtualenv.
   const roots = new Set<string>([process.cwd(), getResourceDir()])
+
+  // The data directory is often inside the project folder (for example
+  // <project>\.localnote-data), so its parent is a good place to look.
+  try {
+    const dataDir = getPaths().dataDir
+    roots.add(dataDir)
+    roots.add(join(dataDir, '..'))
+  } catch {
+    /* data directory not resolvable yet */
+  }
+
   for (const root of roots) {
+    if (!root) continue
     for (const relative of [
       ['.venv', 'Scripts', 'python.exe'],
-      ['venv', 'Scripts', 'python.exe']
+      ['venv', 'Scripts', 'python.exe'],
+      ['.venv', 'bin', 'python'],
+      ['venv', 'bin', 'python']
     ]) {
       const candidate = join(root, ...relative)
-      if (existsSync(candidate)) candidates.push({ path: candidate, label: 'project virtualenv' })
+      if (existsSync(candidate)) {
+        candidates.push({ path: candidate, label: `virtualenv near ${root}` })
+      }
     }
   }
 
@@ -490,12 +516,22 @@ export class Sidecar extends EventEmitter {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      const settings = getSettings()
       return {
         ...empty,
         pythonPath: settings.pythonPath,
         guidance:
-          'No usable Python interpreter was found. Install Python 3.10 or newer, then install the ' +
-          'speech dependencies (see the README "Setup" section).',
+          'Local Note could not find a Python interpreter for speech recognition.\n\n' +
+          'Fix it one of these ways:\n' +
+          '  1. In this app, open Settings > AI and set the Python path to your virtualenv, e.g.\n' +
+          '     <project folder>\\.venv\\Scripts\\python.exe\n' +
+          '  2. Or set a LOCALNOTE_PYTHON environment variable to that same path.\n' +
+          '  3. Or create the virtualenv, if it does not exist yet:\n' +
+          '     python -m venv .venv\n' +
+          '     .venv\\Scripts\\python.exe -m pip install -r sidecar\\requirements.txt\n\n' +
+          'Note that a "python" which opens the Microsoft Store is a Windows stub, not a real\n' +
+          'interpreter, and is skipped automatically. Anaconda and Miniconda installations often\n' +
+          'need to be given by full path.',
         error: message
       }
     }
