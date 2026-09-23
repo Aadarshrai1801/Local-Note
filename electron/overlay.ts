@@ -1,7 +1,7 @@
 import { BrowserWindow, screen, globalShortcut, type Display } from 'electron'
 import { join } from 'node:path'
 import { createLogger } from './lib/log'
-import { getResourceDir } from './lib/paths'
+import { getAppRoot } from './lib/paths'
 import { getSettings, updateSettings } from './db/settings'
 import type { MainEvent, SessionState } from '../shared/types'
 
@@ -106,9 +106,10 @@ export class CaptureOverlay {
     if (this.options.devUrl) {
       void this.window.loadURL(`${this.options.devUrl}/capture.html`)
     } else {
-      // Use the shared resource resolver so the overlay honours the same
-      // LOCALNOTE_RESOURCE_DIR override and packaged layout as everything else.
-      void this.window.loadFile(join(getResourceDir(), 'dist', 'capture.html'))
+      // `dist/` is packaged inside the asar archive, so it is reached through
+      // the app root — NOT through the unpacked resources folder, which only
+      // holds the native helper and the Python sidecar.
+      void this.window.loadFile(join(getAppRoot(), 'dist', 'capture.html'))
     }
 
     this.window.once('ready-to-show', () => {

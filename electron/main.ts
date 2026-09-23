@@ -219,7 +219,22 @@ async function createWindow(): Promise<void> {
     }
   })
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show())
+  mainWindow.once('ready-to-show', () => {
+    log.info('Hub window ready-to-show; showing')
+    mainWindow?.show()
+  })
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    log.info('Hub renderer finished loading')
+  })
+
+  mainWindow.webContents.on('did-fail-load', (_event, code, description, url) => {
+    log.error(`Hub renderer failed to load (${code} ${description}): ${url}`)
+  })
+
+  mainWindow.webContents.on('did-fail-load', (_event, code, description, url) => {
+    log.error(`Hub renderer failed to load (${code} ${description}): ${url}`)
+  })
 
   if (devOrigin !== null) {
     await mainWindow.loadURL(devOrigin)
@@ -229,6 +244,9 @@ async function createWindow(): Promise<void> {
 
   // Closing the window during a recording would silently end the meeting.
   mainWindow.on('close', (event) => {
+    log.info(
+      `Hub window received close (quitting=${quitting}, recording=${session?.isActive ?? false})`
+    )
     if (!quitting && session?.isActive) {
       const choice = dialog.showMessageBoxSync(mainWindow!, {
         type: 'warning',
@@ -250,6 +268,7 @@ async function createWindow(): Promise<void> {
   })
 
   mainWindow.on('closed', () => {
+    log.info('Hub window closed and destroyed')
     mainWindow = null
   })
 }

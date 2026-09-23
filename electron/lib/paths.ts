@@ -128,6 +128,25 @@ export function getSidecarDir(): string {
   return join(getResourceDir(), 'sidecar')
 }
 
+/**
+ * Root of the application bundle — the folder that contains `dist/`.
+ *
+ * This is deliberately different from `getResourceDir()`:
+ *
+ *   * `native/` and `sidecar/` are listed in `asarUnpack`, so they live beside
+ *     the archive and are reached through `getResourceDir()`.
+ *   * `dist/` is packaged *inside* the archive, so it must be reached through
+ *     the app path. Pointing at the unpacked folder finds nothing there.
+ */
+export function getAppRoot(): string {
+  try {
+    return app.getAppPath()
+  } catch {
+    // Not running inside Electron (e.g. a unit test).
+    return join(__dirname, '..', '..', '..')
+  }
+}
+
 export function getRecorderExePath(): string {
   return join(getNativeDir(), 'bin', 'WasapiRecorder.exe')
 }
