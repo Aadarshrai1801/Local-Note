@@ -37,6 +37,38 @@ import traceback
 from typing import Any, Dict, List, Optional
 
 # --------------------------------------------------------------------------
+# Windows symlink compatibility
+# --------------------------------------------------------------------------
+# huggingface_hub caches downloads by symlinking files from blobs/ into
+# snapshots/. Creating a symlink on Windows requires Developer Mode or an
+# elevated process, and without it the download fails part-way, leaving a model
+# directory that looks present but is missing config.json and tokenizer.json.
+#
+# The cache can copy instead of link, but that must be decided before
+# huggingface_hub is imported, so it is handled here rather than in the Node
+# layer. Symlinks are kept where they work, since they avoid duplicating data.
+def _symlinks_supported() -> bool:
+    import tempfile
+
+    try:
+        with tempfile.TemporaryDirectory() as directory:
+            source = os.path.join(directory, "source")
+            link = os.path.join(directory, "link")
+            with open(source, "w") as handle:
+                handle.write("x")
+            os.symlink(source, link)
+        return True
+    except (OSError, NotImplementedError, AttributeError, ValueError):
+        return False
+
+
+if not _symlinks_supported():
+    # Copies files instead of symlinking them.
+    os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
+    # Suppresses the accompanying warning; the situation is already handled.
+    os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+
+# --------------------------------------------------------------------------
 # Model catalogue. Sizes are approximate and only used for UI guidance.
 # --------------------------------------------------------------------------
 
@@ -205,25 +237,45 @@ def _cache_dir_to_model_id(directory_name: str) -> Optional[str]:
     return repo or None
 
 
+# Files a CTranslate2 Whisper model needs to actually load. Checking for
+# model.bin alone is not enough: an interrupted download can leave the weights
+# in place while config.json and tokenizer.json are missing, and reporting that
+# as installed makes the app try to use a model that cannot load.
+REQUIRED_MODEL_FILES = ("model.bin", "config.json", "tokenizer.json")
+
+
+def _snapshot_is_complete(model_directory: str) -> bool:
+    """True when some snapshot inside this cache entry has every required file."""
+    snapshots = os.path.join(model_directory, "snapshots")
+    if not os.path.isdir(snapshots):
+        # Not the Hugging Face cache layout; accept a flat model directory.
+        return all(os.path.exists(os.path.join(model_directory, name)) for name in REQUIRED_MODEL_FILES)
+
+    for entry in os.listdir(snapshots):
+        snapshot = os.path.join(snapshots, entry)
+        if not os.path.isdir(snapshot):
+            continue
+        if all(os.path.exists(os.path.join(snapshot, name)) for name in REQUIRED_MODEL_FILES):
+            return True
+    return False
+
+
 def installed_whisper_models() -> List[str]:
-    """Whisper models already downloaded into our models directory."""
+    """Whisper models already downloaded and complete enough to load."""
     found: List[str] = []
     root = whisper_download_root()
     if not os.path.isdir(root):
         return found
 
     for entry in os.listdir(root):
+        # Skip the cache's own bookkeeping directories (".locks", ".cache").
+        if entry.startswith("."):
+            continue
         candidate = os.path.join(root, entry)
         if not os.path.isdir(candidate):
             continue
-        # A usable CTranslate2 model directory contains model.bin. The cache
-        # layout nests it a few levels down, so walk the tree.
-        has_weights = False
-        for _dirpath, _dirnames, filenames in os.walk(candidate):
-            if "model.bin" in filenames:
-                has_weights = True
-                break
-        if not has_weights:
+        if not _snapshot_is_complete(candidate):
+            log(f"ignoring incomplete model download: {entry}")
             continue
 
         model_id = _cache_dir_to_model_id(entry)
