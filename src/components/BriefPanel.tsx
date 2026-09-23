@@ -145,7 +145,7 @@ export function BriefPanel({
   return (
     <section
       className={cx(
-        'shrink-0 rounded-md border border-ink-800 bg-ink-900/60',
+        'shrink-0 rounded-panel border border-ink-800 bg-ink-900/60',
         imported && 'border-signal-500/25',
         className
       )}
@@ -227,7 +227,7 @@ export function BriefPanel({
                     {docs.map((doc) => (
                       <li
                         key={doc}
-                        className="flex items-center gap-2 rounded border border-ink-800 bg-ink-950 px-2 py-1.5"
+                        className="flex items-center gap-2 rounded-control border border-ink-800 bg-ink-950 px-2 py-1.5"
                       >
                         <Icon name="file" size={13} className="shrink-0 text-ink-500" />
                         <span
@@ -295,7 +295,7 @@ export function BriefPanel({
           </div>
 
           {briefSummary && (
-            <div className="rounded-md border border-signal-500/25 bg-signal-500/[0.05] px-3.5 py-3">
+            <div className="rounded-card border border-signal-500/25 bg-signal-500/[0.05] px-3.5 py-3">
               <span className="eyebrow mb-1 block text-signal-400">Brief summary</span>
               <p className="text-[13px] leading-relaxed text-ink-200">{briefSummary}</p>
             </div>

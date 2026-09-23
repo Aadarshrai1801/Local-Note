@@ -2,10 +2,16 @@
  * The only button in the app.
  *
  * Variant rules (part of the design contract):
- * - `primary` is a high-contrast neutral, never coloured.
- * - `live` is the only amber variant; it belongs to recording controls only.
- * - `signal` marks AI-derived actions (summarise, ask, regenerate).
- * - `danger` is destructive and always asks for confirmation at the call site.
+ * - `primary` is a high-contrast neutral pill. This is the default CTA shape.
+ * - `accent` is the single amber accent. It belongs to recording controls
+ *   (start/stop) and nothing else — if two things on screen are amber, one is
+ *   wrong. `live` is kept as an alias for existing recording controls.
+ * - `signal` marks AI-derived actions (summarise, ask, regenerate) with the
+ *   recessive grey-blue treatment.
+ * - `danger` is destructive and always confirms inline at the call site.
+ *
+ * Every variant is a pill and every call site stays a real <button>, so the
+ * global :focus-visible ring and keyboard activation come for free.
  */
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cx } from '@/lib/format'
@@ -13,6 +19,7 @@ import { Spinner } from '@/components/Icon'
 
 export type ButtonVariant =
   | 'primary'
+  | 'accent'
   | 'secondary'
   | 'ghost'
   | 'danger'
@@ -22,25 +29,37 @@ export type ButtonVariant =
 
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
+/** Shared with IconButton; component-layer primitives from index.css. */
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary:
-    'border border-transparent bg-ink-100 text-ink-950 hover:bg-white active:bg-ink-200 disabled:hover:bg-ink-100',
-  secondary:
-    'border border-ink-800 bg-ink-900 text-ink-100 hover:border-ink-700 hover:bg-ink-800/70 active:bg-ink-800',
-  ghost:
-    'border border-transparent text-ink-300 hover:bg-ink-800/50 hover:text-ink-100 active:bg-ink-800',
-  danger:
-    'border border-red-500/35 bg-red-500/10 text-red-300 hover:bg-red-500/20 active:bg-red-500/25',
-  live: 'border border-ember-500/45 bg-ember-500/12 text-ember-300 hover:bg-ember-500/20 active:bg-ember-500/25',
-  signal:
-    'border border-signal-500/35 bg-signal-500/10 text-signal-300 hover:bg-signal-500/20 active:bg-signal-500/25',
-  link: 'border border-transparent text-signal-300 hover:text-signal-200 hover:underline px-0'
+  primary: 'bg-ink-100 text-ink-950 hover:bg-white active:scale-[0.98]',
+  accent: 'btn-primary',
+  secondary: 'btn-quiet',
+  ghost: 'btn-ghost',
+  danger: 'btn-danger',
+  live: 'btn-primary',
+  signal: 'bg-signal-500/15 text-signal-300 hover:bg-signal-500/25 active:scale-[0.98]',
+  link: 'px-0 text-signal-300 hover:text-signal-200 hover:underline'
+}
+
+/**
+ * Icon-only buttons carry the same tones but no text padding, so the square
+ * dimensions below are never fighting `px-4` from the pill primitives.
+ */
+const ICON_VARIANTS: Record<ButtonVariant, string> = {
+  primary: 'bg-ink-100 text-ink-950 hover:bg-white active:scale-[0.94]',
+  accent: 'bg-ember-400 text-ink-950 hover:bg-ember-300 active:scale-[0.94]',
+  secondary: 'bg-ink-800/70 text-ink-100 hover:bg-ink-700 active:scale-[0.94]',
+  ghost: 'text-ink-300 hover:bg-ink-800/60 hover:text-ink-100 active:scale-[0.94]',
+  danger: 'bg-danger-500/15 text-danger-400 hover:bg-danger-500/25 active:scale-[0.94]',
+  live: 'bg-ember-400 text-ink-950 hover:bg-ember-300 active:scale-[0.94]',
+  signal: 'bg-signal-500/15 text-signal-300 hover:bg-signal-500/25 active:scale-[0.94]',
+  link: 'text-signal-300 hover:text-signal-200'
 }
 
 const SIZES: Record<ButtonSize, string> = {
   sm: 'h-7 gap-1.5 px-2.5 text-[12px]',
   md: 'h-9 gap-2 px-3.5 text-[13px]',
-  lg: 'h-11 gap-2.5 px-5 text-sm'
+  lg: 'h-11 gap-2.5 px-5 text-[13.5px]'
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -73,11 +92,10 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cx(
-        'inline-flex select-none items-center justify-center rounded-md font-medium tracking-[-0.01em]',
-        'transition-colors duration-100',
-        'disabled:cursor-not-allowed disabled:opacity-45',
-        !isLink && SIZES[size],
+        'inline-flex select-none items-center justify-center font-medium tracking-[-0.01em]',
+        !isLink && 'btn',
         VARIANTS[variant],
+        !isLink && SIZES[size],
         block && 'w-full',
         className
       )}
@@ -101,7 +119,7 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   children: ReactNode
 }
 
-/** Square, label-carrying button for toolbars and row actions. */
+/** Round, label-carrying button for toolbars and row actions. */
 export function IconButton({
   label,
   variant = 'ghost',
@@ -118,10 +136,10 @@ export function IconButton({
       title={label}
       aria-label={label}
       className={cx(
-        'inline-flex items-center justify-center rounded-md transition-colors duration-100',
+        'inline-flex shrink-0 items-center justify-center rounded-full transition-all duration-150 ease-spring',
         'disabled:cursor-not-allowed disabled:opacity-45',
         dimension,
-        VARIANTS[variant],
+        ICON_VARIANTS[variant],
         className
       )}
       {...rest}

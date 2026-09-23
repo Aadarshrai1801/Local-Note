@@ -1,5 +1,6 @@
 /**
- * Fixed navigation rail: wordmark, primary views, and the recording control.
+ * Fixed navigation rail: wordmark, the four primary views, and the recording
+ * control.
  *
  * The "Start recording" button is deliberately neutral in colour. Amber is
  * reserved for the moment capture is actually running, so the rail's bottom
@@ -22,6 +23,7 @@ import {
 } from '@/lib/store'
 import { Button } from '@/components/Button'
 import { Icon, LogoMark, type IconName } from '@/components/Icon'
+import { Kbd } from '@/components/Kbd'
 
 interface NavItem {
   view: ViewName
@@ -31,19 +33,19 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { view: 'home', label: 'Home', icon: 'home' },
-  { view: 'search', label: 'Search', icon: 'search' },
   { view: 'dictionary', label: 'Dictionary', icon: 'book' },
+  { view: 'snippets', label: 'Snippets', icon: 'layers' },
   { view: 'settings', label: 'Settings', icon: 'sliders' }
 ]
 
 export function Sidebar(): ReactNode {
   const nav = useNav()
-  const active = useIsRecording()
+  const recording = useIsRecording()
   const startedAt = useSessionField((session) => session.startedAt)
   const sessionTitle = useSessionField((session) => session.title)
   const { status } = useStatus()
   const busy = useBusy()
-  const now = useNow(1000, active)
+  const now = useNow(1000, recording)
   const [starting, setStarting] = useState(false)
   const [stopping, setStopping] = useState(false)
 
@@ -69,7 +71,7 @@ export function Sidebar(): ReactNode {
         <div className="flex items-center gap-2.5">
           <LogoMark
             size={22}
-            className={cx('shrink-0', active ? 'text-ember-400' : 'text-ink-400')}
+            className={cx('shrink-0', recording ? 'text-ember-400' : 'text-ink-400')}
           />
           <div className="leading-none">
             <p className="text-[15px] font-semibold uppercase tracking-[0.22em] text-ink-100">
@@ -80,13 +82,13 @@ export function Sidebar(): ReactNode {
             </p>
           </div>
         </div>
-        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-600">
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
           offline meeting notes
         </p>
       </div>
 
-      {/* Primary nav */}
-      <nav aria-label="Primary" className="flex-1 space-y-0.5 px-3">
+      {/* Primary nav — exactly four destinations. */}
+      <nav aria-label="Primary" className="flex-1 space-y-1 px-3">
         {NAV_ITEMS.map((item) => {
           const active = nav.view === item.view
           return (
@@ -96,19 +98,12 @@ export function Sidebar(): ReactNode {
               aria-current={active ? 'page' : undefined}
               onClick={() => go(item.view)}
               className={cx(
-                'group relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] transition-colors',
+                'group flex w-full items-center gap-2.5 rounded-control px-2.5 py-2 text-left text-[13px] transition-colors duration-150 ease-spring',
                 active
-                  ? 'bg-ink-900 text-ink-100'
-                  : 'text-ink-400 hover:bg-ink-900/50 hover:text-ink-200'
+                  ? 'bg-ink-850 text-ink-100'
+                  : 'text-ink-400 hover:bg-ink-900/60 hover:text-ink-100'
               )}
             >
-              <span
-                aria-hidden="true"
-                className={cx(
-                  'absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full transition-colors',
-                  active ? 'bg-ink-300' : 'bg-transparent'
-                )}
-              />
               <Icon
                 name={item.icon}
                 size={16}
@@ -120,49 +115,17 @@ export function Sidebar(): ReactNode {
         })}
 
         {nav.view === 'meeting' && nav.meetingId && (
-          <div className="flex items-center gap-2.5 rounded-md bg-ink-900/40 px-2.5 py-2 text-[13px] text-ink-300">
-            <Icon name="file" size={16} className="text-ink-500" />
-            <span className="truncate">Meeting</span>
-          </div>
-        )}
-
-        {sttMissing && (
-          <button
-            type="button"
-            onClick={() => go('setup')}
-            className={cx(
-              'mt-3 flex w-full items-start gap-2.5 rounded-md border px-2.5 py-2 text-left text-[12px] leading-snug transition-colors',
-              nav.view === 'setup'
-                ? 'border-ember-500/40 bg-ember-500/10 text-ember-200'
-                : 'border-ink-800 bg-ink-900/60 text-ink-300 hover:border-ember-500/30 hover:text-ember-200'
-            )}
-          >
-            <Icon name="alert" size={14} className="mt-0.5 shrink-0 text-ember-400" />
-            <span>
-              Transcription unavailable
-              <span className="mt-0.5 block text-ink-500">Run the one-time setup →</span>
-            </span>
-          </button>
+          <p className="flex items-center gap-2.5 px-2.5 pt-3 text-[12px] text-ink-500">
+            <Icon name="file" size={14} className="text-ink-600" />
+            Viewing a meeting
+          </p>
         )}
       </nav>
 
-      {/* Status + recording control */}
-      <div className="space-y-3 px-3 pb-5 pt-4">
-        <div className="space-y-1 px-2.5">
-          <StatusLine label="Transcription" ok={status?.stt.available ?? false} detail={status?.stt.engine ?? 'not detected'} />
-          <StatusLine label="Local model" ok={status?.llm.available ?? false} detail={status?.llm.selectedModel ?? 'not running'} />
-          {busy && (
-            <p className="flex items-center gap-1.5 pt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-500">
-              <span className="h-1 w-1 animate-pulse rounded-full bg-signal-400" />
-              <span className="truncate">{busy.label}</span>
-            </p>
-          )}
-        </div>
-
-        <div className="divider" />
-
-        {active ? (
-          <div className="space-y-2 rounded-md border border-ember-500/30 bg-ember-500/[0.07] px-3 py-3">
+      {/* Recording control + quiet status footer. */}
+      <div className="space-y-4 px-3 pb-5 pt-4">
+        {recording ? (
+          <div className="animate-fade-up space-y-2.5 rounded-card border border-ink-800 bg-ink-900/70 px-3 py-3">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 animate-pulse-rec rounded-full bg-ember-400" />
               <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ember-300">
@@ -173,13 +136,13 @@ export function Sidebar(): ReactNode {
               {formatClock(elapsed)}
             </p>
             {sessionTitle && (
-              <p className="truncate text-[12px] text-ink-300" title={sessionTitle}>
+              <p className="truncate text-[12px] text-ink-400" title={sessionTitle}>
                 {sessionTitle}
               </p>
             )}
             <Button
               size="sm"
-              variant="live"
+              variant="secondary"
               block
               loading={stopping}
               icon={<Icon name="stop" size={13} />}
@@ -196,7 +159,7 @@ export function Sidebar(): ReactNode {
             variant="secondary"
             block
             size="md"
-            className="justify-start border-ink-700 bg-ink-900 px-3 text-ink-100"
+            className="justify-between px-3"
             loading={starting}
             icon={
               <span
@@ -204,6 +167,7 @@ export function Sidebar(): ReactNode {
                 className="block h-2.5 w-2.5 rounded-full border border-ink-400"
               />
             }
+            iconRight={<Kbd>Ctrl N</Kbd>}
             onClick={() => void handleStart()}
             disabled={sttMissing}
             title={sttMissing ? 'Install the local transcription model first' : undefined}
@@ -212,7 +176,41 @@ export function Sidebar(): ReactNode {
           </Button>
         )}
 
-        <p className="flex items-start gap-1.5 px-0.5 font-mono text-[10px] uppercase leading-relaxed tracking-[0.08em] text-ink-600">
+        {sttMissing && (
+          <button
+            type="button"
+            onClick={() => go('setup')}
+            className="flex w-full items-start gap-2 rounded-control px-2.5 py-1.5 text-left text-[11.5px] leading-snug text-ember-300 transition-colors duration-150 ease-spring hover:bg-ink-900/60 hover:text-ember-200"
+          >
+            <Icon name="alert" size={13} className="mt-0.5 shrink-0 text-ember-400" />
+            <span>
+              Transcription unavailable
+              <span className="mt-0.5 block text-ink-500">Run the one-time setup →</span>
+            </span>
+          </button>
+        )}
+
+        {/* Quiet status footer: dots only, no card. */}
+        <div className="space-y-1.5 px-2.5">
+          <StatusLine
+            label="Transcription"
+            state={status == null ? 'unknown' : status.stt.available ? 'ok' : 'error'}
+            detail={status?.stt.engine ?? 'not detected'}
+          />
+          <StatusLine
+            label="Local model"
+            state={status == null ? 'unknown' : status.llm.available ? 'ok' : 'warn'}
+            detail={status?.llm.selectedModel ?? 'not running'}
+          />
+          {busy && (
+            <p className="flex items-center gap-1.5 pt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-500">
+              <span className="h-1 w-1 animate-pulse rounded-full bg-signal-400" />
+              <span className="truncate">{busy.label}</span>
+            </p>
+          )}
+        </div>
+
+        <p className="flex items-start gap-1.5 px-1 font-mono text-[10px] uppercase leading-relaxed tracking-[0.08em] text-ink-500">
           <Icon name="lock" size={11} className="mt-0.5 shrink-0" />
           <span>
             local only · no account
@@ -221,7 +219,7 @@ export function Sidebar(): ReactNode {
           </span>
         </p>
         {isMockApi && (
-          <p className="px-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-ember-400/80">
+          <p className="px-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ember-400/80">
             browser mock · not recording
           </p>
         )}
@@ -230,24 +228,27 @@ export function Sidebar(): ReactNode {
   )
 }
 
+type StatusState = 'ok' | 'warn' | 'error' | 'unknown'
+
+const DOT_TONES: Record<StatusState, string> = {
+  ok: 'bg-emerald-400',
+  warn: 'bg-ember-400',
+  error: 'bg-danger-400',
+  unknown: 'bg-ink-600'
+}
+
 function StatusLine({
   label,
-  ok,
+  state,
   detail
 }: {
   label: string
-  ok: boolean
+  state: StatusState
   detail: string
 }): ReactNode {
   return (
     <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.08em]">
-      <span
-        aria-hidden="true"
-        className={cx(
-          'h-1.5 w-1.5 shrink-0 rounded-full',
-          ok ? 'bg-signal-400' : 'bg-ink-600'
-        )}
-      />
+      <span aria-hidden="true" className={cx('h-1.5 w-1.5 shrink-0 rounded-full', DOT_TONES[state])} />
       <span className="text-ink-500">{label}</span>
       <span className="truncate text-ink-400" title={detail}>
         {detail}

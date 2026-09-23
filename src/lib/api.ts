@@ -94,7 +94,11 @@ const MOCK_SETTINGS: AppSettings = {
   pythonPath: 'C:\\Python312\\python.exe',
   systemDeviceId: 'default-render',
   micDeviceId: null,
-  theme: 'dark'
+  theme: 'dark',
+  captureBarEnabled: true,
+  captureBarHideWhenIdle: false,
+  captureHotkey: 'CommandOrControl+Shift+Space',
+  captureBarPosition: null
 }
 
 const MOCK_MODELS: WhisperModelInfo[] = [
@@ -1343,6 +1347,20 @@ function createMockApi(): LocalNoteApi {
     async getLogTail(lines) {
       await delay(260)
       return mockLogTail(lines ?? 200)
+    },
+
+    async getCaptureBarStatus() {
+      await delay(80)
+      return {
+        enabled: MOCK_SETTINGS.captureBarEnabled,
+        hideWhenIdle: MOCK_SETTINGS.captureBarHideWhenIdle,
+        hotkey: MOCK_SETTINGS.captureHotkey,
+        hotkeyRegistered: true
+      }
+    },
+    async resetCaptureBarPosition() {
+      await delay(80)
+      MOCK_SETTINGS.captureBarPosition = null
     },
 
     onEvent(callback) {

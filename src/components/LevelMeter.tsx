@@ -40,19 +40,19 @@ export function LevelMeter({
         <Icon
           name={stream === 'mic' ? 'mic' : 'monitor'}
           size={compact ? 12 : 13}
-          className={cx('shrink-0', dead ? 'text-red-400' : 'text-ink-500')}
+          className={cx('shrink-0', dead ? 'text-danger-400' : 'text-ink-500')}
         />
         <span
           className={cx(
             'font-mono uppercase tracking-[0.12em]',
             compact ? 'text-[10px]' : 'text-[11px]',
-            dead ? 'text-red-300' : 'text-ink-400'
+            dead ? 'text-danger-400' : 'text-ink-400'
           )}
         >
           {LABELS[stream]}
         </span>
         {dead ? (
-          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-red-300">
+          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-danger-400">
             no audio
           </span>
         ) : missing ? (
@@ -72,26 +72,26 @@ export function LevelMeter({
         className={cx(
           'relative overflow-hidden rounded-full',
           compact ? 'h-1' : 'h-1.5',
-          dead ? 'bg-red-500/20' : 'bg-ink-800'
+          dead ? 'bg-danger-500/25' : 'bg-ink-800'
         )}
       >
         {!dead && (
           <div
             className={cx(
-              'h-full rounded-full transition-[width] duration-150 ease-out',
+              'h-full rounded-full transition-[width] duration-150 ease-spring',
               stream === 'mic' ? 'bg-ember-400' : 'bg-ember-300/80'
             )}
             style={{ width: `${width}%` }}
           />
         )}
-        {dead && <div className="h-full w-full bg-red-500/35" />}
+        {dead && <div className="h-full w-full bg-danger-500/40" />}
       </div>
 
       {!compact && level?.deviceName && (
         <p
           className={cx(
             'mt-1.5 truncate font-mono text-[11px]',
-            dead ? 'text-red-300/80' : 'text-ink-600'
+            dead ? 'text-danger-400/80' : 'text-ink-600'
           )}
           title={level.deviceName}
         >

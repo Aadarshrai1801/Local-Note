@@ -167,7 +167,7 @@ export function ActionItemList({
                   }}
                   aria-label="Action item text"
                   className={cx(
-                    'w-full resize-none rounded border border-transparent bg-transparent px-1 py-0.5 text-[13.5px] leading-relaxed transition-colors',
+                    'w-full resize-none rounded-control border border-transparent bg-transparent px-1.5 py-1 text-[13.5px] leading-relaxed transition-colors duration-150 ease-spring',
                     'hover:border-ink-800 focus:border-ink-700 focus:outline-none',
                     item.done ? 'text-ink-500 line-through' : 'text-ink-100'
                   )}
@@ -185,7 +185,7 @@ export function ActionItemList({
                     aria-label="Assignee"
                     title="Assignee — type a name to reassign"
                     className={cx(
-                      'w-32 rounded border border-transparent bg-transparent py-0.5 font-mono text-[11px] uppercase tracking-[0.08em] transition-colors',
+                      'w-32 rounded-control border border-transparent bg-transparent py-0.5 font-mono text-[11px] uppercase tracking-[0.08em] transition-colors duration-150 ease-spring',
                       'hover:border-ink-800 focus:border-ink-700 focus:text-ink-100 focus:outline-none',
                       item.assignee ? 'text-signal-300' : 'text-ink-500 placeholder:text-ink-600'
                     )}
@@ -216,7 +216,7 @@ export function ActionItemList({
           }}
           placeholder="Add an action item…"
           aria-label="New action item"
-          className="field field-sm flex-1"
+          className="field flex-1 py-1.5 text-[12.5px]"
         />
         <input
           value={assignee}
@@ -226,7 +226,7 @@ export function ActionItemList({
           }}
           placeholder="assignee"
           aria-label="New action item assignee"
-          className="field field-sm w-28 font-mono text-[11px] uppercase tracking-[0.08em]"
+          className="field w-28 py-1.5 font-mono text-[11px] uppercase tracking-[0.08em]"
         />
         <Button
           size="sm"

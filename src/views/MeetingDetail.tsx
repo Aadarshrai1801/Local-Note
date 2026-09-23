@@ -3,11 +3,17 @@
  * per-meeting question box.
  *
  * The page is a two-column editorial layout — transcript on the left (the
- * record), derived artifacts on the right (the convenience) — which mirrors how
- * the data is actually valued.
+ * record, drawn on the light content canvas so long text stays legible) and
+ * derived artifacts on the right (the convenience, in the recessive signal
+ * treatment). Amber does not appear here at all.
+ *
+ * Correction inspector: `corrected` marks a segment that the dictionary pass
+ * rewrote. The raw wording is replaced in place and not stored, so "View diff"
+ * explains what happened and which dictionary spellings are in the line rather
+ * than inventing a before/after. See TranscriptList for the rendering.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { SpeakerName } from '@shared/types'
+import type { DictionaryTerm, SpeakerName } from '@shared/types'
 import { api } from '@/lib/api'
 import {
   cx,
@@ -30,8 +36,9 @@ import {
   useMeetingRevision
 } from '@/lib/store'
 import { ActionItemList } from '@/components/ActionItemList'
-import { Button, IconButton } from '@/components/Button'
-import { EmptyState, ErrorState, LoadingBlock, Skeleton } from '@/components/EmptyState'
+import { Button } from '@/components/Button'
+import { EmptyState, ErrorState, Skeleton } from '@/components/EmptyState'
+import { ExportMenu, type ExportFormat } from '@/components/ExportMenu'
 import { Icon } from '@/components/Icon'
 import { TranscriptList } from '@/components/TranscriptList'
 
@@ -49,12 +56,30 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
     { toastOnError: 'Could not load that meeting' }
   )
 
+  const meeting = detail.data?.meeting ?? null
+  const segments = detail.data?.segments ?? []
+  const actionItems = detail.data?.actionItems ?? []
+  const speakers = detail.data?.speakers ?? []
+
+  const correctedCount = useMemo(
+    () => segments.filter((segment) => segment.corrected).length,
+    [segments]
+  )
+
+  // The dictionary is only needed to explain corrected lines, so it is loaded
+  // lazily and not at all for meetings that were never corrected.
+  const dictionary = useAsyncData<DictionaryTerm[]>(
+    () => (correctedCount > 0 ? api.listDictionary() : Promise.resolve([])),
+    [meetingId, correctedCount > 0]
+  )
+  const corrections = dictionary.data ?? EMPTY_CORRECTIONS
+
   const [summarizing, setSummarizing] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [question, setQuestion] = useState('')
   const [asking, setAsking] = useState(false)
   const [answer, setAnswer] = useState<string | null>(null)
-  const [exporting, setExporting] = useState<'md' | 'txt' | 'json' | null>(null)
+  const [exporting, setExporting] = useState<ExportFormat | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [renamingSpeaker, setRenamingSpeaker] = useState<string | null>(null)
 
@@ -67,11 +92,6 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
     setConfirmDelete(false)
     setRenamingSpeaker(null)
   }, [meetingId])
-
-  const meeting = detail.data?.meeting ?? null
-  const segments = detail.data?.segments ?? []
-  const actionItems = detail.data?.actionItems ?? []
-  const speakers = detail.data?.speakers ?? []
 
   const speakerLabels = useMemo(() => {
     const seen: string[] = []
@@ -139,7 +159,7 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
     if (text != null) setAnswer(text)
   }
 
-  const exportAs = async (format: 'md' | 'txt' | 'json'): Promise<void> => {
+  const exportAs = async (format: ExportFormat): Promise<void> => {
     if (!meetingId) return
     setExporting(format)
     const path = await attempt(() => api.exportMeeting(meetingId, format), {
@@ -155,10 +175,13 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
 
   const renameSpeaker = async (label: string, displayName: string): Promise<void> => {
     if (!meetingId) return
-    const ok = await attempt(async () => {
-      await api.renameSpeaker(meetingId, label, displayName)
-      return true
-    }, { errorPrefix: 'Could not rename that speaker' })
+    const ok = await attempt(
+      async () => {
+        await api.renameSpeaker(meetingId, label, displayName)
+        return true
+      },
+      { errorPrefix: 'Could not rename that speaker' }
+    )
     if (ok) {
       setRenamingSpeaker(null)
       refresh()
@@ -167,10 +190,13 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
 
   const removeMeeting = async (): Promise<void> => {
     if (!meetingId) return
-    const ok = await attempt(async () => {
-      await api.deleteMeeting(meetingId)
-      return true
-    }, { errorPrefix: 'Could not delete the meeting' })
+    const ok = await attempt(
+      async () => {
+        await api.deleteMeeting(meetingId)
+        return true
+      },
+      { errorPrefix: 'Could not delete the meeting' }
+    )
     if (ok) {
       pushToast('info', 'Meeting deleted.')
       bumpMeetingsRevision()
@@ -206,7 +232,12 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
           onRetry={detail.refresh}
         />
         <div className="mt-4">
-          <Button variant="ghost" size="sm" icon={<Icon name="arrowLeft" size={13} />} onClick={() => go('home')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Icon name="arrowLeft" size={13} />}
+            onClick={() => go('home')}
+          >
             Back to Home
           </Button>
         </div>
@@ -220,9 +251,16 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
         <Skeleton width="12rem" className="h-3" />
         <Skeleton width="24rem" className="mt-4 h-6" />
         <Skeleton width="18rem" className="mt-3 h-3" />
-        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <LoadingBlock label="Loading transcript…" />
-          <LoadingBlock label="Loading summary…" />
+        <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="rounded-panel border border-ink-800 bg-canvas p-4">
+            <div className="space-y-3">
+              <Skeleton width="100%" className="h-3.5" onCanvas />
+              <Skeleton width="92%" className="h-3.5" onCanvas />
+              <Skeleton width="88%" className="h-3.5" onCanvas />
+              <Skeleton width="60%" className="h-3.5" onCanvas />
+            </div>
+          </div>
+          <Skeleton width="100%" className="h-36" />
         </div>
       </div>
     )
@@ -261,7 +299,7 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
         >
           All meetings
         </Button>
-        <span className="font-mono text-[11px] text-ink-600">
+        <span className="font-mono text-[11px] text-ink-500">
           {formatDate(meeting.startedAt)} · {formatTime(meeting.startedAt)} ·{' '}
           {formatDuration(meeting.durationMs)}
         </span>
@@ -273,10 +311,13 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
               variant="secondary"
               icon={<Icon name="waveform" size={13} />}
               onClick={() =>
-                void attempt(async () => {
-                  await api.revealMeetingAudio(meeting.id)
-                  return true
-                }, { errorPrefix: 'Could not open the audio file' })
+                void attempt(
+                  async () => {
+                    await api.revealMeetingAudio(meeting.id)
+                    return true
+                  },
+                  { errorPrefix: 'Could not open the audio file' }
+                )
               }
             >
               Reveal audio
@@ -288,32 +329,36 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
       <div className="mt-4">
         <InlineTitle value={meeting.title} onSave={(next) => void saveTitle(next)} />
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="chip">{plural(meeting.segmentCount, 'line')}</span>
-          <span className="chip">{plural(meeting.actionItemCount, 'action')}</span>
+          <span className="chip bg-ink-800/70 text-ink-300">
+            {plural(meeting.segmentCount, 'line')}
+          </span>
+          <span className="chip bg-ink-800/70 text-ink-300">
+            {plural(meeting.actionItemCount, 'action')}
+          </span>
           {meeting.audioPath ? (
-            <span className="chip">
+            <span className="chip bg-ink-800/70 text-ink-300">
               <Icon name="waveform" size={11} />
               audio kept
             </span>
           ) : (
-            <span className="chip">audio discarded</span>
+            <span className="chip bg-ink-800/70 text-ink-300">audio discarded</span>
           )}
           {meeting.summarizedAt && (
-            <span className="chip chip-signal">
+            <span className="chip bg-signal-500/15 text-signal-300">
               summarised {formatTime(meeting.summarizedAt)}
             </span>
           )}
           {meeting.summaryStatus === 'failed' && (
-            <span className="chip border-red-500/30 text-red-300">summary failed</span>
+            <span className="chip bg-danger-500/10 text-danger-400">summary failed</span>
           )}
         </div>
         {meeting.briefNotes && (
-          <details className="mt-4 rounded-md border border-ink-800 bg-ink-900/50">
-            <summary className="cursor-pointer px-3.5 py-2 text-[12.5px] text-ink-300 marker:text-ink-600">
+          <details className="mt-4 rounded-control border border-ink-800 bg-ink-900/50">
+            <summary className="cursor-pointer px-3.5 py-2 text-[13px] text-ink-300 marker:text-ink-600">
               <span className="eyebrow mr-2 text-ink-500">Brief</span>
               {truncate(meeting.briefNotes, 90)}
             </summary>
-            <p className="whitespace-pre-line border-t border-ink-800/70 px-3.5 py-3 text-[13px] leading-relaxed text-ink-200">
+            <p className="whitespace-pre-line border-t border-ink-800/70 px-3.5 py-3 text-[13.5px] leading-relaxed text-ink-200">
               {meeting.briefNotes}
             </p>
           </details>
@@ -324,86 +369,42 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
         {/* Transcript --------------------------------------------- */}
         <section aria-labelledby="transcript-heading" className="flex min-h-[24rem] flex-col">
           <div className="flex items-baseline gap-3 pb-2">
-            <h2 id="transcript-heading" className="section-title">
+            <h2 id="transcript-heading" className="eyebrow text-ink-400">
               Transcript
             </h2>
-            <span className="font-mono text-[11px] text-ink-600">{segments.length} lines</span>
+            <span className="font-mono text-[11px] text-ink-500">
+              {plural(segments.length, 'line')}
+              {correctedCount > 0 && ` · ${plural(correctedCount, 'correction')}`}
+            </span>
             <span aria-hidden="true" className="h-px flex-1 bg-ink-800/70" />
             <CopyTranscriptButton
               segments={segments.map((s) => `${formatClock(s.startMs)} ${s.text}`).join('\n')}
             />
           </div>
 
-          <TranscriptList
-            segments={segments}
-            speakers={speakers}
-            showSource
-            onSpeakerClick={(label) => {
-              setRenamingSpeaker(label)
-              document.getElementById('speakers')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-            }}
-            emptyState={
-              <EmptyState
-                compact
-                title="No transcript for this meeting"
-                description="Nothing was recognised — the recording may have been silent, or transcription was not available when it ran."
-              />
-            }
-          />
-
-          {/* Ask ------------------------------------------------- */}
-          <div className="mt-8 rounded-md border border-signal-500/25 bg-signal-500/[0.04]">
-            <div className="flex items-center gap-2 border-b border-signal-500/15 px-3.5 py-2">
-              <Icon name="sparkle" size={13} className="shrink-0 text-signal-400" />
-              <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-signal-300">
-                Ask about this meeting
-              </h2>
-              <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.08em] text-signal-400/60">
-                local model
-              </span>
-            </div>
-            <div className="space-y-3 px-3.5 py-3">
-              <form
-                className="flex items-center gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  void ask()
-                }}
-              >
-                <input
-                  value={question}
-                  onChange={(event) => setQuestion(event.target.value)}
-                  placeholder="Did we agree on a launch date?"
-                  aria-label="Question about this meeting"
-                  className="field"
+          <div className="canvas-surface flex min-h-[20rem] flex-1 flex-col rounded-panel border border-ink-800 p-4 shadow-lift">
+            <TranscriptList
+              segments={segments}
+              speakers={speakers}
+              showSource
+              tone="canvas"
+              showCorrections
+              corrections={corrections}
+              onSpeakerClick={(label) => {
+                setRenamingSpeaker(label)
+                document
+                  .getElementById('speakers')
+                  ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+              }}
+              emptyState={
+                <EmptyState
+                  compact
+                  tone="canvas"
+                  title="No transcript for this meeting"
+                  description="Nothing was recognised — the recording may have been silent, or transcription was not available when it ran."
                 />
-                <Button
-                  type="submit"
-                  variant="signal"
-                  loading={asking}
-                  disabled={question.trim().length === 0}
-                  icon={<Icon name="message" size={13} />}
-                >
-                  Ask
-                </Button>
-              </form>
-
-              {answer != null && (
-                <div className="animate-fade-up rounded-md border border-signal-500/20 bg-ink-950/60 px-3.5 py-3">
-                  <div className="flex items-start gap-2">
-                    <p className="min-w-0 flex-1 whitespace-pre-line text-[13px] leading-relaxed text-ink-100">
-                      {answer}
-                    </p>
-                    <IconButton label="Dismiss answer" size="sm" onClick={() => setAnswer(null)}>
-                      <Icon name="x" size={13} />
-                    </IconButton>
-                  </div>
-                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.08em] text-signal-400/60">
-                    answer only covers this transcript · press esc to dismiss
-                  </p>
-                </div>
-              )}
-            </div>
+              }
+            />
           </div>
         </section>
 
@@ -412,30 +413,28 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
           {/* Summary */}
           <section aria-labelledby="summary-heading">
             <div className="flex items-center gap-2 pb-2">
-              <h2 id="summary-heading" className="section-title">
+              <h2 id="summary-heading" className="eyebrow text-ink-400">
                 Summary
               </h2>
-              {summarized && (
-                <span className="chip chip-signal">local model</span>
-              )}
+              {summarized && <span className="chip bg-signal-500/15 text-signal-300">local model</span>}
               <span aria-hidden="true" className="h-px flex-1 bg-ink-800/70" />
             </div>
 
             {summaryRunning ? (
-              <div className="rounded-md border border-signal-500/25 bg-signal-500/[0.04] px-3.5 py-3">
-                <div className="flex items-center gap-2 text-[13px] text-signal-200">
+              <div className="rounded-panel border border-signal-500/25 bg-signal-500/[0.05] px-3.5 py-3">
+                <div className="flex items-center gap-2 text-[13px] text-signal-300">
                   <Icon name="sparkle" size={13} className="animate-pulse" />
                   {backendBusy?.label ?? 'Summarising this meeting…'}
                 </div>
                 <ProgressRail progress={backendBusy?.progress ?? null} />
-                <p className="mt-2 text-[12px] leading-relaxed text-ink-400">
+                <p className="mt-2 text-[13px] leading-relaxed text-ink-400">
                   Long transcripts are summarised in passes, so this can take a minute. The
                   transcript is already saved.
                 </p>
               </div>
             ) : summarized ? (
-              <div className="rounded-md border border-signal-500/20 bg-signal-500/[0.04] px-3.5 py-3">
-                <p className="whitespace-pre-line border-l-2 border-signal-500/50 pl-3 text-[13px] leading-[1.7] text-ink-100">
+              <div className="rounded-panel border border-signal-500/25 bg-signal-500/[0.05] px-3.5 py-3">
+                <p className="whitespace-pre-line border-l-2 border-signal-500/50 pl-3 text-[13.5px] leading-[1.7] text-ink-100">
                   {meeting.summary}
                 </p>
                 <div className="mt-3 flex items-center gap-2">
@@ -455,9 +454,7 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
                 compact
                 tone="signal"
                 title={
-                  meeting.summaryStatus === 'failed'
-                    ? 'Summarising failed'
-                    : 'No summary yet'
+                  meeting.summaryStatus === 'failed' ? 'Summarising failed' : 'No summary yet'
                 }
                 description={
                   meeting.summaryError ??
@@ -478,10 +475,76 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
             )}
           </section>
 
+          {/* Ask ------------------------------------------------- */}
+          <section
+            aria-labelledby="ask-heading"
+            className="rounded-panel border border-signal-500/25 bg-signal-500/[0.04]"
+          >
+            <div className="flex items-center gap-2 border-b border-signal-500/15 px-3.5 py-2">
+              <Icon name="sparkle" size={13} className="shrink-0 text-signal-400" />
+              <h2
+                id="ask-heading"
+                className="font-mono text-[11px] uppercase tracking-[0.14em] text-signal-300"
+              >
+                Ask about this meeting
+              </h2>
+              <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.08em] text-signal-400/60">
+                local model
+              </span>
+            </div>
+            <div className="space-y-3 px-3.5 py-3">
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void ask()
+                }}
+              >
+                <input
+                  value={question}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  placeholder="Did we agree on a launch date?"
+                  aria-label="Question about this meeting"
+                  className="field text-[13.5px]"
+                />
+                <Button
+                  type="submit"
+                  variant="signal"
+                  loading={asking}
+                  disabled={question.trim().length === 0}
+                  icon={<Icon name="message" size={13} />}
+                >
+                  Ask
+                </Button>
+              </form>
+
+              {answer != null && (
+                <div className="animate-fade-up rounded-card border border-signal-500/20 bg-ink-950/60 px-3.5 py-3">
+                  <div className="flex items-start gap-2">
+                    <p className="min-w-0 flex-1 whitespace-pre-line text-[13.5px] leading-relaxed text-ink-100">
+                      {answer}
+                    </p>
+                    <button
+                      type="button"
+                      aria-label="Dismiss answer"
+                      onClick={() => setAnswer(null)}
+                      className="-mr-1 -mt-0.5 rounded-full p-1 text-ink-400 transition-colors duration-150 ease-spring hover:bg-ink-800 hover:text-ink-100"
+                    >
+                      <Icon name="x" size={13} />
+                    </button>
+                  </div>
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.08em] text-signal-400/60">
+                    answer only covers this transcript · press esc to dismiss
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* Action items */}
           <section aria-labelledby="actions-heading">
             <div className="flex items-center gap-2 pb-2">
-              <h2 id="actions-heading" className="section-title">
+              <h2 id="actions-heading" className="eyebrow text-ink-400">
                 Action items
               </h2>
               <span aria-hidden="true" className="h-px flex-1 bg-ink-800/70" />
@@ -509,13 +572,13 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
           {/* Speakers */}
           <section id="speakers" aria-labelledby="speakers-heading" className="scroll-mt-6">
             <div className="flex items-center gap-2 pb-2">
-              <h2 id="speakers-heading" className="section-title">
+              <h2 id="speakers-heading" className="eyebrow text-ink-400">
                 Speakers
               </h2>
               <span aria-hidden="true" className="h-px flex-1 bg-ink-800/70" />
             </div>
             {speakerLabels.length === 0 ? (
-              <p className="text-[12.5px] leading-relaxed text-ink-500">
+              <p className="text-[13px] leading-relaxed text-ink-500">
                 No speakers were detected: this meeting has no transcript lines.
               </p>
             ) : (
@@ -542,21 +605,21 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
                       <button
                         type="button"
                         onClick={() => setRenamingSpeaker(label)}
-                        className="group flex w-full items-center gap-2 rounded-md border border-ink-800 px-2.5 py-1.5 text-left transition-colors hover:border-ink-700 hover:bg-ink-900/60"
+                        className="group flex w-full items-center gap-2 rounded-control border border-ink-800 px-2.5 py-1.5 text-left transition-colors duration-150 ease-spring hover:border-ink-700 hover:bg-ink-900/60"
                       >
                         <Icon name="user" size={13} className="shrink-0 text-ink-500" />
-                        <span className="min-w-0 flex-1 truncate text-[13px] text-ink-200">
+                        <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink-200">
                           {current || <span className="text-ink-500">{label}</span>}
                         </span>
                         {current && (
-                          <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-600">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-500">
                             {label}
                           </span>
                         )}
                         <Icon
                           name="pencil"
                           size={12}
-                          className="shrink-0 text-ink-700 group-hover:text-ink-400"
+                          className="shrink-0 text-ink-600 transition-colors group-hover:text-ink-400"
                         />
                       </button>
                     </li>
@@ -564,9 +627,9 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
                 })}
               </ul>
             )}
-            <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
-              Renaming a speaker updates the transcript, summaries produced later, and search
-              results for this meeting only.
+            <p className="mt-2 text-[13px] leading-relaxed text-ink-500">
+              Renaming a speaker updates the transcript, summaries produced later, and search results
+              for this meeting only.
             </p>
           </section>
 
@@ -576,7 +639,7 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
               Danger
             </h2>
             {confirmDelete ? (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="animate-fade-up flex flex-wrap items-center gap-2">
                 <Button
                   size="sm"
                   variant="danger"
@@ -593,14 +656,14 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-red-300 hover:bg-red-500/10"
+                className="text-danger-400 hover:bg-danger-500/10"
                 icon={<Icon name="trash" size={13} />}
                 onClick={() => setConfirmDelete(true)}
               >
                 Delete this meeting
               </Button>
             )}
-            <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
+            <p className="mt-2 text-[13px] leading-relaxed text-ink-500">
               Deletes the transcript, summary, action items and any kept audio for this meeting.
               There is no cloud copy to fall back on.
             </p>
@@ -614,6 +677,9 @@ export function MeetingDetailView({ meetingId }: MeetingDetailViewProps): ReactN
 /* ------------------------------------------------------------------ */
 /* Pieces                                                             */
 /* ------------------------------------------------------------------ */
+
+/** Stable identity so transcript rows never lose memoization. */
+const EMPTY_CORRECTIONS: DictionaryTerm[] = []
 
 function InlineTitle({
   value,
@@ -661,7 +727,7 @@ function InlineTitle({
             }
           }}
           aria-label="Meeting title"
-          className="w-full rounded-md border border-ink-700 bg-ink-900 px-2 py-1 text-[26px] font-medium tracking-[-0.025em] text-ink-50 focus:outline-none focus-visible:ring-1 focus-visible:ring-signal-500/40"
+          className="w-full rounded-control border border-ink-700 bg-ink-900 px-2.5 py-1 text-[24px] font-medium tracking-[-0.025em] text-ink-50 focus:outline-none"
         />
       </form>
     )
@@ -672,15 +738,15 @@ function InlineTitle({
       type="button"
       onClick={() => setEditing(true)}
       title="Click to rename"
-      className="group -mx-2 flex max-w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-ink-900/60"
+      className="group -mx-2 flex max-w-full items-center gap-2 rounded-control px-2 py-1 text-left transition-colors duration-150 ease-spring hover:bg-ink-900/60"
     >
-      <h1 className="truncate text-[26px] font-medium tracking-[-0.025em] text-ink-50">
+      <h1 className="truncate text-[24px] font-medium tracking-[-0.025em] text-ink-50">
         {value || 'Untitled meeting'}
       </h1>
       <Icon
         name="pencil"
         size={14}
-        className="shrink-0 text-ink-700 transition-colors group-hover:text-ink-400"
+        className="shrink-0 text-ink-600 transition-colors group-hover:text-ink-400"
       />
     </button>
   )
@@ -709,7 +775,7 @@ function SpeakerEditor({
 
   return (
     <form
-      className="rounded-md border border-signal-500/30 bg-signal-500/[0.04] px-2.5 py-2"
+      className="rounded-card border border-signal-500/30 bg-signal-500/[0.05] px-2.5 py-2.5"
       onSubmit={(event) => {
         event.preventDefault()
         onSave(draft)
@@ -724,7 +790,7 @@ function SpeakerEditor({
           if (event.key === 'Escape') onCancel()
         }}
         placeholder="e.g. Priya Raghavan"
-        className="field field-sm"
+        className="field py-1.5 text-[13px]"
       />
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Button size="sm" variant="primary" type="submit" disabled={draft.trim().length === 0}>
@@ -746,90 +812,22 @@ function SpeakerEditor({
 function ProgressRail({ progress }: { progress: number | null }): ReactNode {
   const width = progress == null ? 100 : Math.round(Math.max(0, Math.min(1, progress)) * 100)
   return (
-    <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-ink-800" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress == null ? undefined : width}>
+    <div
+      className="mt-2.5 h-1 overflow-hidden rounded-full bg-ink-800"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={progress == null ? undefined : width}
+    >
       <div
         className={cx(
-          'h-full rounded-full bg-signal-500',
-          progress == null ? 'animate-sweep w-1/4' : 'transition-[width] duration-300'
+          'h-full rounded-full',
+          progress == null
+            ? 'w-full animate-shimmer bg-gradient-to-r from-signal-500/20 via-signal-400 to-signal-500/20 bg-[length:200%_100%]'
+            : 'bg-signal-500 transition-[width] duration-300'
         )}
         style={progress == null ? undefined : { width: `${width}%` }}
       />
-    </div>
-  )
-}
-
-function ExportMenu({
-  exporting,
-  onExport
-}: {
-  exporting: 'md' | 'txt' | 'json' | null
-  onExport: (format: 'md' | 'txt' | 'json') => void
-}): ReactNode {
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement | null>(null)
-
-  useEscape(() => setOpen(false), open)
-
-  useEffect(() => {
-    if (!open) return
-    const onPointerDown = (event: MouseEvent): void => {
-      if (!containerRef.current?.contains(event.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onPointerDown)
-    return () => document.removeEventListener('mousedown', onPointerDown)
-  }, [open])
-
-  const options: Array<{ format: 'md' | 'txt' | 'json'; label: string; hint: string }> = [
-    { format: 'md', label: 'Markdown', hint: 'Readable notes with headings' },
-    { format: 'txt', label: 'Plain text', hint: 'Timestamped transcript only' },
-    { format: 'json', label: 'JSON', hint: 'Everything, for scripting' }
-  ]
-
-  return (
-    <div ref={containerRef} className="relative">
-      <Button
-        size="sm"
-        variant="secondary"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        loading={exporting != null}
-        icon={<Icon name="download" size={13} />}
-        iconRight={<Icon name="chevronDown" size={12} />}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        Export
-      </Button>
-      {open && (
-        <div
-          role="menu"
-          aria-label="Export format"
-          className="animate-fade-up absolute right-0 z-20 mt-1 w-64 overflow-hidden rounded-md border border-ink-700 bg-ink-900 shadow-panel"
-        >
-          {options.map((option) => (
-            <button
-              key={option.format}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false)
-                onExport(option.format)
-              }}
-              className="flex w-full items-baseline gap-3 px-3 py-2 text-left transition-colors hover:bg-ink-800/70"
-            >
-              <span className="w-20 shrink-0 text-[13px] text-ink-100">{option.label}</span>
-              <span className="min-w-0 flex-1 text-[12px] leading-snug text-ink-500">
-                {option.hint}
-              </span>
-              <span className="shrink-0 font-mono text-[10px] uppercase text-ink-600">
-                .{option.format}
-              </span>
-            </button>
-          ))}
-          <p className="border-t border-ink-800 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-600">
-            written to your data folder
-          </p>
-        </div>
-      )}
     </div>
   )
 }
@@ -860,7 +858,7 @@ function CopyTranscriptButton({ segments }: { segments: string }): ReactNode {
         if (timerRef.current != null) window.clearTimeout(timerRef.current)
         timerRef.current = window.setTimeout(() => setCopied(false), 1800)
       }}
-      className="flex shrink-0 items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-500 transition-colors hover:text-ink-200 disabled:opacity-40"
+      className="flex shrink-0 items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-500 transition-colors duration-150 ease-spring hover:text-ink-200 disabled:opacity-40"
     >
       <Icon name={copied ? 'check' : 'copy'} size={12} />
       {copied ? 'copied' : 'copy'}

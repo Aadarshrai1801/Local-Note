@@ -16,7 +16,13 @@ import './index.css'
  * unreadable and jitters constantly; the transcript belongs in the Hub.
  */
 
-const BAR_COUNT = 5
+const BAR_COUNT = 7
+
+/** Symmetric envelope so the meter reads as a waveform rather than a block. */
+const BAR_ENVELOPE = [0.45, 0.7, 0.9, 1, 0.9, 0.7, 0.45]
+
+/** Tallest the bars get, in pixels. Matches the meter container height. */
+const BAR_MAX_HEIGHT = 26
 
 /** Maps an RMS amplitude to a bar height fraction, with a little compression. */
 function levelToScale(rms: number): number {
@@ -147,7 +153,7 @@ function CaptureBar(): React.ReactElement {
         </button>
 
         {/* Audio level bars — the only live feedback in the bar */}
-        <div className="flex h-6 flex-1 items-center justify-center gap-[3px]">
+        <div className="flex h-7 flex-1 items-center justify-center gap-[3px]">
           {Array.from({ length: BAR_COUNT }).map((_, index) => (
             <Bar
               key={index}
@@ -187,17 +193,16 @@ function Bar({
   recording: boolean
   starved: boolean
 }): React.ReactElement {
-  // Give the bars a gentle envelope so the middle is tallest, like a waveform.
-  const envelope = [0.62, 0.86, 1, 0.86, 0.62][index] ?? 1
-  const scale = recording ? Math.max(0.1, level * envelope) : 0.14
+  const envelope = BAR_ENVELOPE[index] ?? 1
+  const scale = recording ? Math.max(0.12, level * envelope) : 0.16
 
   return (
     <span
       className={[
-        'w-[3px] rounded-full transition-[height] duration-100 ease-out',
+        'w-[4px] rounded-full transition-[height] duration-100 ease-out',
         starved ? 'bg-ink-600' : recording ? 'bg-ember-400' : 'bg-ink-600'
       ].join(' ')}
-      style={{ height: `${Math.round(scale * 24)}px` }}
+      style={{ height: `${Math.round(scale * BAR_MAX_HEIGHT)}px` }}
     />
   )
 }

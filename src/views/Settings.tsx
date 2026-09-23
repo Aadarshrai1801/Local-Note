@@ -31,12 +31,17 @@ import { Button, IconButton } from '@/components/Button'
 import { ErrorState, LoadingBlock, Skeleton } from '@/components/EmptyState'
 import { Icon } from '@/components/Icon'
 
-type SectionId = 'models' | 'ai' | 'audio' | 'data' | 'diagnostics'
+type SectionId = 'models' | 'ai' | 'audio' | 'capturebar' | 'data' | 'diagnostics'
 
-const SECTIONS: Array<{ id: SectionId; label: string; icon: 'cpu' | 'sparkle' | 'sliders' | 'database' | 'terminal' }> = [
+const SECTIONS: Array<{
+  id: SectionId
+  label: string
+  icon: 'cpu' | 'sparkle' | 'sliders' | 'target' | 'database' | 'terminal'
+}> = [
   { id: 'models', label: 'Models', icon: 'cpu' },
   { id: 'ai', label: 'AI', icon: 'sparkle' },
   { id: 'audio', label: 'Audio', icon: 'sliders' },
+  { id: 'capturebar', label: 'Capture bar', icon: 'target' },
   { id: 'data', label: 'Data', icon: 'database' },
   { id: 'diagnostics', label: 'Diagnostics', icon: 'terminal' }
 ]
@@ -48,10 +53,10 @@ export function Settings(): ReactNode {
   return (
     <div className="mx-auto w-full max-w-5xl px-8 py-9 lg:px-12">
       <p className="eyebrow">Settings</p>
-      <h1 className="mt-2 text-[26px] font-medium tracking-[-0.025em] text-ink-50">
+      <h1 className="mt-2 text-[24px] font-medium tracking-[-0.025em] text-ink-50">
         Local Note configuration
       </h1>
-      <p className="mt-3 flex items-start gap-2 text-[13.5px] leading-relaxed text-ink-300">
+      <p className="mt-3 flex items-start gap-2 text-[13.5px] leading-relaxed text-ink-400">
         <Icon name="shield" size={15} className="mt-0.5 shrink-0 text-signal-400" />
         <span className="max-w-[68ch]">
           <span className="text-ink-100">All processing is local.</span> No account, no telemetry,
@@ -60,7 +65,7 @@ export function Settings(): ReactNode {
         </span>
       </p>
 
-      <nav aria-label="Settings sections" className="mt-7 flex flex-wrap gap-1 border-b border-ink-800">
+      <nav aria-label="Settings sections" className="mt-7 flex flex-wrap gap-1.5">
         {SECTIONS.map((item) => (
           <button
             key={item.id}
@@ -68,10 +73,10 @@ export function Settings(): ReactNode {
             aria-current={section === item.id ? 'true' : undefined}
             onClick={() => setSection(item.id)}
             className={cx(
-              'relative -mb-px flex items-center gap-2 border-b px-3 py-2 text-[13px] transition-colors',
+              'flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] transition-colors duration-150 ease-spring',
               section === item.id
-                ? 'border-ink-200 text-ink-100'
-                : 'border-transparent text-ink-500 hover:text-ink-200'
+                ? 'bg-ink-800 text-ink-100'
+                : 'text-ink-400 hover:bg-ink-900 hover:text-ink-200'
             )}
           >
             <Icon name={item.icon} size={14} />
@@ -92,6 +97,8 @@ export function Settings(): ReactNode {
           <AiSection settings={settings} />
         ) : section === 'audio' ? (
           <AudioSection settings={settings} />
+        ) : section === 'capturebar' ? (
+          <CaptureBarSection settings={settings} />
         ) : section === 'data' ? (
           <DataSection />
         ) : (
@@ -115,8 +122,8 @@ function SectionHeader({
 }): ReactNode {
   return (
     <header className="mb-5">
-      <h2 className="text-[17px] font-medium tracking-[-0.015em] text-ink-100">{title}</h2>
-      <p className="mt-1.5 max-w-[72ch] text-[13px] leading-relaxed text-ink-400">{description}</p>
+      <h2 className="text-[15px] font-medium tracking-[-0.015em] text-ink-100">{title}</h2>
+      <p className="mt-1.5 max-w-[72ch] text-[13.5px] leading-relaxed text-ink-400">{description}</p>
     </header>
   )
 }
