@@ -26,24 +26,38 @@ const env = { ...process.env }
 
 const hasSpace = /\s/.test(root)
 
+/**
+ * True when a path is usable for electron-builder's extract-then-rename step.
+ * An unset or space-containing path must be redirected; an existing clean one
+ * (for example one the user configured globally) is left alone so caches are
+ * not duplicated.
+ */
+function isUsable(value) {
+  return typeof value === 'string' && value.trim().length > 0 && !/\s/.test(value)
+}
+
 if (hasSpace) {
-  // Place the cache and output as siblings of the project, keeping them on the
-  // same drive but out of any directory whose name contains a space.
+  // Place redirected caches as siblings of the project, keeping them on the same
+  // drive but out of any directory whose name contains a space.
   const parent = dirname(root)
-  const cacheDir = join(parent, 'localnote-build-cache')
+  const fallbackCache = join(parent, 'localnote-build-cache')
   const outputDir = join(parent, 'localnote-release')
 
-  mkdirSync(cacheDir, { recursive: true })
-  mkdirSync(outputDir, { recursive: true })
-
-  env.ELECTRON_BUILDER_CACHE = join(cacheDir, 'builder')
-  env.ELECTRON_CACHE = join(cacheDir, 'electron')
+  if (!isUsable(env.ELECTRON_BUILDER_CACHE)) {
+    mkdirSync(join(fallbackCache, 'builder'), { recursive: true })
+    env.ELECTRON_BUILDER_CACHE = join(fallbackCache, 'builder')
+  }
+  if (!isUsable(env.ELECTRON_CACHE)) {
+    mkdirSync(join(fallbackCache, 'electron'), { recursive: true })
+    env.ELECTRON_CACHE = join(fallbackCache, 'electron')
+  }
 
   console.log('[dist] The project path contains a space:')
   console.log(`[dist]   ${root}`)
   console.log('[dist] Redirecting electron-builder output to avoid a Windows rename bug:')
-  console.log(`[dist]   cache  -> ${cacheDir}`)
-  console.log(`[dist]   output -> ${outputDir}`)
+  console.log(`[dist]   builder cache -> ${env.ELECTRON_BUILDER_CACHE}`)
+  console.log(`[dist]   electron cache -> ${env.ELECTRON_CACHE}`)
+  console.log(`[dist]   output        -> ${outputDir}`)
 
   if (!passthrough.some((arg) => arg.startsWith('--config.directories.output'))) {
     passthrough.push(`--config.directories.output=${outputDir}`)
