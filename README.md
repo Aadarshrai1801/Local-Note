@@ -85,6 +85,27 @@ python -m venv .venv
 ollama pull llama3.1:8b
 ```
 
+> **If step 2 fails with "Python was not found; run without arguments to install
+> from the Microsoft Store"**, the `python` on your PATH is a Windows Store
+> stub, not a real interpreter. This is common on Windows 11 and also happens
+> when Python was installed via Anaconda or Miniconda. Find a real one and use it
+> by full path:
+>
+> ```powershell
+> # See which interpreters exist, then use one of them by path:
+> where.exe python
+> & "$env:USERPROFILE\miniconda3\python.exe" --version
+>
+> # Create the virtualenv with that interpreter instead:
+> & "$env:USERPROFILE\miniconda3\python.exe" -m venv .venv
+> .venv\Scripts\python.exe -m pip install -r sidecar\requirements.txt
+> ```
+>
+> The app does not need `python` on your PATH. It probes a project `.venv`
+> first, then the `py` launcher, then `python`, and you can point it at any
+> interpreter explicitly with the `pythonPath` setting. Store stubs are skipped
+> automatically.
+
 Then launch it:
 
 ```bash
